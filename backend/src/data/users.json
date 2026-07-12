@@ -1,0 +1,23 @@
+{
+  "admin@sentinel.ai": {
+    "name": "Admin User",
+    "email": "admin@sentinel.ai",
+    "passwordHash": "$2a$10$mYVuxfnyPueBqLReQw/J5uengazYhZ/Lj3yU.T7.3.nc7e4LOpDIe",
+    "role": "administrator",
+    "createdAt": "2026-07-11T19:21:29.038Z"
+  },
+  "gamma@sentinel.ai": {
+    "name": "Operator Gamma",
+    "email": "gamma@sentinel.ai",
+    "passwordHash": "$2a$12$nRaxwLkORB4JatDzlvLWGO.R2gHO9GwM3HjdsqMzWkBt0a7FgO9I2",
+    "role": "analyst",
+    "createdAt": "2026-07-11T19:23:03.400Z"
+  },
+  "ayushdhiman708@gmail.com": {
+    "name": "Ayush Dhiman ",
+    "email": "ayushdhiman708@gmail.com",
+    "passwordHash": "$2a$12$qgujBbSa27Y3424GkyEsV.qEHEwOPWymOxbjP5Xbfh.ksIGZzVape",
+    "role": "analyst",
+    "createdAt": "2026-07-11T19:25:57.114Z"
+  }
+}
