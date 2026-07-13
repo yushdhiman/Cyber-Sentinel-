@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: cyber-sentinel
+    env: node
+    plan: free
+    buildCommand: |
+      cd frontend && npm install && npm run build
+      cd ../backend && npm install
+    startCommand: cd backend && NODE_ENV=production npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        value: change_this_to_a_long_random_secret
+      - key: JWT_EXPIRES_IN
+        value: 2h
+      - key: CORS_ORIGIN
+        value: https://your-app-name.onrender.com

@@ -1,4 +1,6 @@
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
@@ -19,13 +21,38 @@ const { startRealtimeEngine } = require('./utils/realtimeEngine');
 
 const app = express();
 
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim()) 
+  : ['http://localhost:5173'];
+
+const isLocal = (url) => {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch (e) {
+    return false;
+  }
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*') || isLocal(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+};
+
 if (!process.env.JWT_SECRET) {
   console.error('FATAL: JWT_SECRET is not set. Copy .env.example to .env and set a real secret.');
   process.exit(1);
 }
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan('dev'));
 
@@ -51,7 +78,19 @@ app.use('/api/protection', apiLimiter, protectionRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString(), websocket: 'enabled' }));
 
-app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+} else {
+  app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+}
+
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
@@ -60,20 +99,22 @@ app.use((err, req, res, next) => {
 // ── Attach Socket.IO to an HTTP server ──
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
+  cors: corsOptions,
   transports: ['websocket', 'polling'],
 });
 
-// Start real-time broadcast engine
-startRealtimeEngine(io);
+const startServer = () => {
+  const PORT = process.env.PORT || 5000;
+  return server.listen(PORT, () => {
+    console.log(`\n🛡  Cyber Sentinel API running on port ${PORT}`);
+    console.log(`⚡  WebSocket real-time engine: ACTIVE`);
+    console.log(`📡  Emitting: system:metrics (2s) · attack:event (3-7s) · timeline:update (30s)\n`);
+  });
+};
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`\n🛡  Cyber Sentinel API running on port ${PORT}`);
-  console.log(`⚡  WebSocket real-time engine: ACTIVE`);
-  console.log(`📡  Emitting: system:metrics (2s) · attack:event (3-7s) · timeline:update (30s)\n`);
-});
+if (require.main === module) {
+  startRealtimeEngine(io);
+  startServer();
+}
+
+module.exports = app;
