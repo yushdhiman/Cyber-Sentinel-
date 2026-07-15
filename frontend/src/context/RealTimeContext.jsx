@@ -10,8 +10,8 @@ import { useAuth } from './AuthContext';
 const RealTimeContext = createContext(null);
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 
-                   (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') : '') || 
-                   (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+                   (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/api' ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') : '') || 
+                   (import.meta.env.DEV ? 'http://localhost:10000' : window.location.origin);
 const MAX_FEED_EVENTS = 60; // Rolling window of last 60 attacks
 const MAX_TIMELINE_BUCKETS = 24;
 
