@@ -14,6 +14,7 @@ import Assistant from './pages/Assistant';
 import SecurityTools from './pages/SecurityTools';
 import ProtectionCenter from './pages/ProtectionCenter';
 import Sandbox from './pages/Sandbox';
+import Profile from './pages/Profile';
 
 function AppShell() {
   const [theme, setTheme] = useState(() => localStorage.getItem('cs_theme') || 'dark');
@@ -45,6 +46,7 @@ function AppShell() {
                 <Route path="/security-tools" element={<SecurityTools />} />
                 <Route path="/protection-center" element={<ProtectionCenter />} />
                 <Route path="/sandbox" element={<Sandbox />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>

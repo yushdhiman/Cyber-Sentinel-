@@ -91,7 +91,7 @@ export default function Dashboard() {
   const {
     connected, systemMetrics, attackFeed, timeline,
     linkedDevices, systemFindings, criticalAlert,
-    blockedCount, attacksPerMinute,
+    blockedCount, attacksPerMinute, liveAttackCount,
   } = useRealTime();
 
   const [selectedSeverity, setSelectedSeverity] = useState('ALL');
@@ -205,7 +205,7 @@ export default function Dashboard() {
         {/* Live Attack Count */}
         <div className="stat-card accent-red clickable" onClick={() => setIsFeedPaused(p => !p)}>
           <div className="stat-label">LIVE ATTACKS (TOTAL)</div>
-          <div className="stat-value" style={{ color: 'var(--accent-red)' }}>{attackFeed.length}</div>
+          <div className="stat-value" style={{ color: 'var(--accent-red)' }}>{liveAttackCount}</div>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.06em', marginTop: 4 }}>
             {isFeedPaused ? '⏸ PAUSED' : `${attacksPerMinute} per minute · live`}
           </div>

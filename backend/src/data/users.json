@@ -1,10 +1,11 @@
 {
   "admin@sentinel.ai": {
-    "name": "Admin User",
+    "name": "Admin User Updated",
     "email": "admin@sentinel.ai",
     "passwordHash": "$2a$10$mYVuxfnyPueBqLReQw/J5uengazYhZ/Lj3yU.T7.3.nc7e4LOpDIe",
     "role": "administrator",
-    "createdAt": "2026-07-11T19:21:29.038Z"
+    "createdAt": "2026-07-11T19:21:29.038Z",
+    "profilePic": null
   },
   "gamma@sentinel.ai": {
     "name": "Operator Gamma",
@@ -18,6 +19,7 @@
     "email": "ayushdhiman708@gmail.com",
     "passwordHash": "$2a$12$qgujBbSa27Y3424GkyEsV.qEHEwOPWymOxbjP5Xbfh.ksIGZzVape",
     "role": "analyst",
-    "createdAt": "2026-07-11T19:25:57.114Z"
+    "createdAt": "2026-07-11T19:25:57.114Z",
+    "profilePic": null
   }
 }

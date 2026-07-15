@@ -29,6 +29,7 @@ export function RealTimeProvider({ children }) {
   const [criticalAlert, setCriticalAlert] = useState(null);       // Latest critical alert
   const [blockedCount, setBlockedCount] = useState(0);            // Cumulative blocked counter
   const [attacksPerMinute, setAttacksPerMinute] = useState(0);    // Rolling APM
+  const [liveAttackCount, setLiveAttackCount] = useState(0);      // Cumulative live attacks
 
   // Track attacks per minute using a sliding window
   const attackTimestamps = useRef([]);
@@ -66,6 +67,9 @@ export function RealTimeProvider({ children }) {
     // System metrics: CPU, RAM, threat score, network health — every 2s
     socket.on('system:metrics', (data) => {
       setSystemMetrics(data);
+      if (data.liveAttackCount !== undefined) {
+        setLiveAttackCount(data.liveAttackCount);
+      }
     });
 
     // New attack event — every 3–7s
@@ -76,6 +80,7 @@ export function RealTimeProvider({ children }) {
         const updated = [attack, ...prev].slice(0, MAX_FEED_EVENTS);
         return updated;
       });
+      setLiveAttackCount(prev => prev + 1);
       if (attack.blocked) {
         setBlockedCount(prev => prev + 1);
       }
@@ -131,6 +136,7 @@ export function RealTimeProvider({ children }) {
     criticalAlert,
     blockedCount,
     attacksPerMinute,
+    liveAttackCount,
   };
 
   return (

@@ -70,6 +70,17 @@ module.exports = {
     saveDB();
     return user;
   },
+  updateUser(user) {
+    users.set(user.email.toLowerCase(), user);
+    saveDB();
+    return user;
+  },
+  updateUserEmail(oldEmail, newEmail, user) {
+    users.delete(oldEmail.toLowerCase());
+    users.set(newEmail.toLowerCase(), user);
+    saveDB();
+    return user;
+  },
   count() {
     return users.size;
   },

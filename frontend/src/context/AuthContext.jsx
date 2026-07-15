@@ -27,6 +27,16 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const updateProfile = useCallback(async (profileData) => {
+    const { data } = await client.put('/auth/profile', profileData);
+    if (data.token) {
+      localStorage.setItem('cs_token', data.token);
+    }
+    localStorage.setItem('cs_user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('cs_token');
     localStorage.removeItem('cs_user');
@@ -34,7 +44,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

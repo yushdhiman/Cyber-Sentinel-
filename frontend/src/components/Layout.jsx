@@ -82,6 +82,16 @@ const NAV_ITEMS = [
       </svg>
     )
   },
+  {
+    to: '/profile',
+    label: 'Operator Profile',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+    )
+  },
 ];
 
 const THEMES = [
@@ -252,8 +262,12 @@ export default function Layout({ children, theme, onToggleTheme }) {
               ))}
               {currentTheme.name}
             </div>
-            <div className="user-badge">
-              <span className="user-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</span>
+            <div className="user-badge" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
+              {user?.profilePic ? (
+                <img src={user.profilePic} alt={user.name} className="user-avatar" style={{ objectFit: 'cover' }} />
+              ) : (
+                <span className="user-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</span>
+              )}
               <span style={{ fontSize: '13px', letterSpacing: '0.03em' }}>{user?.name}</span>
             </div>
           </div>

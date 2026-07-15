@@ -95,6 +95,13 @@ function startRealtimeEngine(io) {
         const cpuLoad = latestMetrics?.cpu?.usagePercent ?? 20;
         if (cpuLoad > 70 || Math.random() > 0.4) {
           io.emit('attack:event', attack);
+          // Increment the attacks count in the latest timeline bucket
+          if (attackTimeline.length > 0) {
+            attackTimeline[attackTimeline.length - 1].attacks++;
+            if (attack.blocked) {
+              attackTimeline[attackTimeline.length - 1].blocked++;
+            }
+          }
         }
       } catch (err) {
         console.error('[RT] Attack event error:', err.message);
