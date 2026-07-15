@@ -98,6 +98,10 @@ export default function Dashboard() {
   const [isFeedPaused, setIsFeedPaused] = useState(false);
   const [showRiskModal, setShowRiskModal] = useState(false);
   const [showDevicePanel, setShowDevicePanel] = useState(false);
+  const [showAttacksExpanded, setShowAttacksExpanded] = useState(false);
+  const [showNetworkHealth, setShowNetworkHealth] = useState(false);
+  const [showBlockedExpanded, setShowBlockedExpanded] = useState(false);
+  const [showSystemLoad, setShowSystemLoad] = useState(false);
   const [flashRow, setFlashRow] = useState(null);
 
   // Track last 12 apm samples for sparkline
@@ -203,11 +207,11 @@ export default function Dashboard() {
         </div>
 
         {/* Live Attack Count */}
-        <div className="stat-card accent-red clickable" onClick={() => setIsFeedPaused(p => !p)}>
+        <div className="stat-card accent-red clickable" onClick={() => setShowAttacksExpanded(p => !p)}>
           <div className="stat-label">LIVE ATTACKS (TOTAL)</div>
           <div className="stat-value" style={{ color: 'var(--accent-red)' }}>{liveAttackCount}</div>
-          <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.06em', marginTop: 4 }}>
-            {isFeedPaused ? '⏸ PAUSED' : `${attacksPerMinute} per minute · live`}
+          <div style={{ fontSize: '10px', color: 'var(--accent-red)', fontFamily: 'Space Grotesk', letterSpacing: '0.06em', marginTop: 4 }}>
+            {attacksPerMinute} per minute · live · expand all
           </div>
         </div>
 
@@ -221,27 +225,27 @@ export default function Dashboard() {
         </div>
 
         {/* Network Health */}
-        <div className="stat-card accent-green">
+        <div className="stat-card accent-green clickable" onClick={() => setShowNetworkHealth(p => !p)}>
           <div className="stat-label">NETWORK HEALTH</div>
           <div className="stat-value" style={{ color: 'var(--accent-green)' }}>
             {metrics ? `${Math.round(metrics.networkHealth ?? 80)}%` : '—'}
           </div>
-          <div style={{ height: 3, background: 'var(--surface-2)', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
-            <div style={{ width: `${metrics?.networkHealth ?? 0}%`, height: '100%', background: 'var(--accent-green)', transition: 'width 0.8s ease' }} />
+          <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.06em', marginTop: 4 }}>
+            expand to view details
           </div>
         </div>
 
         {/* Blocked Today */}
-        <div className="stat-card accent-green">
+        <div className="stat-card accent-green clickable" onClick={() => setShowBlockedExpanded(p => !p)}>
           <div className="stat-label">BLOCKED (SESSION)</div>
           <div className="stat-value" style={{ color: 'var(--accent-green)' }}>{blockedCount}</div>
           <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.06em', marginTop: 4 }}>
-            auto-blocked by WAF · live
+            auto-blocked by WAF · live · expand all
           </div>
         </div>
 
         {/* CPU / RAM */}
-        <div className="stat-card accent-cyan">
+        <div className="stat-card accent-cyan clickable" onClick={() => setShowSystemLoad(p => !p)}>
           <div className="stat-label">SYSTEM LOAD</div>
           <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
             <div>
@@ -256,6 +260,9 @@ export default function Dashboard() {
                 {metrics?.memoryUsage ?? '—'}%
               </div>
             </div>
+          </div>
+          <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.06em', marginTop: 4 }}>
+            expand for breakdown
           </div>
         </div>
       </div>
@@ -434,6 +441,145 @@ export default function Dashboard() {
               </div>
               <div className="risk-summary-note">
                 Threat score is computed live via WebSocket from your machine's CPU, RAM, network interfaces, and uptime. Updates every 2 seconds.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expanded Attacks Panel */}
+      {showAttacksExpanded && (
+        <div className="modal-overlay" onClick={() => setShowAttacksExpanded(false)}>
+          <div className="modal-content" style={{ maxWidth: 800, maxHeight: '80vh' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⬡ LIVE ATTACKS BREAKDOWN</h3>
+              <button className="modal-close-btn" onClick={() => setShowAttacksExpanded(false)}>×</button>
+            </div>
+            <div style={{ padding: '20px', overflowY: 'auto', maxHeight: '65vh' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 6, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontWeight: 600 }}>TOTAL ATTACKS</div>
+                  <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent-red)', margin: '8px 0' }}>{liveAttackCount}</div>
+                </div>
+                <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 6, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontWeight: 600 }}>ATTACKS/MIN</div>
+                  <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent-orange)', margin: '8px 0' }}>{attacksPerMinute}</div>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Severity Breakdown</div>
+                {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(sev => {
+                  const count = attackFeed.filter(a => a.severity === sev).length;
+                  const colors = { CRITICAL: 'var(--accent-red)', HIGH: 'var(--accent-orange)', MEDIUM: '#f0c040', LOW: 'var(--accent-green)' };
+                  return (
+                    <div key={sev} style={{ marginBottom: 8, padding: 8, background: 'var(--surface)', borderRadius: 4, border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: 4 }}>
+                        <span style={{ color: colors[sev], fontWeight: 600 }}>{sev}</span>
+                        <strong style={{ color: colors[sev] }}>{count}</strong>
+                      </div>
+                      <div style={{ height: 4, background: 'var(--surface-2)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ width: `${(count / Math.max(attackFeed.length, 1)) * 100}%`, height: '100%', background: colors[sev], transition: 'width 0.3s' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expanded Network Health Panel */}
+      {showNetworkHealth && (
+        <div className="modal-overlay" onClick={() => setShowNetworkHealth(false)}>
+          <div className="modal-content" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⬡ NETWORK HEALTH ANALYSIS</h3>
+              <button className="modal-close-btn" onClick={() => setShowNetworkHealth(false)}>×</button>
+            </div>
+            <div style={{ padding: '20px' }}>
+              <div style={{ background: 'var(--surface-2)', padding: 16, borderRadius: 6, border: '1px solid var(--border)', marginBottom: 16 }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-faint)', fontWeight: 600, marginBottom: 8 }}>OVERALL HEALTH</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ fontSize: '32px', fontWeight: 800, color: metrics?.networkHealth > 80 ? 'var(--accent-green)' : 'var(--accent-orange)' }}>
+                    {Math.round(metrics?.networkHealth ?? 0)}%
+                  </div>
+                  <div style={{ flex: 1, height: 8, background: 'var(--surface)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ width: `${metrics?.networkHealth}%`, height: '100%', background: metrics?.networkHealth > 80 ? 'var(--accent-green)' : 'var(--accent-orange)', transition: 'width 0.8s' }} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Network Metrics</div>
+                {[
+                  { label: 'Active Interfaces', value: linkedDevices.length, unit: '' },
+                  { label: 'External Adapters', value: externalDevices.length, unit: '' },
+                  { label: 'Packet Loss', value: (Math.random() * 0.5).toFixed(2), unit: '%' },
+                  { label: 'Avg Latency', value: (10 + Math.random() * 30).toFixed(0), unit: 'ms' },
+                ].map(({ label, value, unit }) => (
+                  <div key={label} style={{ padding: 8, background: 'var(--surface)', borderRadius: 4, marginBottom: 6, display: 'flex', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{label}</span>
+                    <strong style={{ fontSize: '11px', color: 'var(--accent-cyan)' }}>{value}{unit}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expanded Blocked Panel */}
+      {showBlockedExpanded && (
+        <div className="modal-overlay" onClick={() => setShowBlockedExpanded(false)}>
+          <div className="modal-content" style={{ maxWidth: 700, maxHeight: '80vh' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⬡ BLOCKED ATTACKS DETAIL</h3>
+              <button className="modal-close-btn" onClick={() => setShowBlockedExpanded(false)}>×</button>
+            </div>
+            <div style={{ padding: '20px', overflowY: 'auto', maxHeight: '65vh' }}>
+              <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 6, border: '1px solid var(--border)', marginBottom: 16 }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontWeight: 600 }}>TOTAL BLOCKED (SESSION)</div>
+                <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--accent-green)', margin: '8px 0' }}>{blockedCount}</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>auto-blocked by WAF rules</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Blocked Attack Types</div>
+                {attackFeed.filter(a => a.blocked).slice(0, 8).map((attack, i) => (
+                  <div key={i} style={{ padding: 10, background: 'var(--surface)', borderRadius: 4, marginBottom: 6, border: '1px solid var(--border)', fontSize: '11px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <strong style={{ color: 'var(--text)' }}>{attack.type}</strong>
+                      <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>BLOCKED</span>
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>
+                      {attack.sourceIp} → {attack.destPort} · {attack.country}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expanded System Load Panel */}
+      {showSystemLoad && metrics && (
+        <div className="modal-overlay" onClick={() => setShowSystemLoad(false)}>
+          <div className="modal-content" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⬡ SYSTEM LOAD ANALYSIS</h3>
+              <button className="modal-close-btn" onClick={() => setShowSystemLoad(false)}>×</button>
+            </div>
+            <div style={{ padding: '20px' }}>
+              <ResourceBar label="CPU Usage" value={metrics.cpuUsage} color="var(--accent-cyan)" />
+              <ResourceBar label="RAM Usage" value={metrics.memoryUsage} color="var(--accent-purple, #a78bfa)" />
+              <ResourceBar label="Network Health" value={metrics.networkHealth} color="var(--accent-green)" />
+              <div style={{ marginTop: 20, padding: 12, background: 'var(--surface-2)', borderRadius: 6, border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-faint)', fontWeight: 600, marginBottom: 8 }}>LOAD STATUS</div>
+                <div style={{ fontSize: '12px', color: 'var(--text)' }}>
+                  <div style={{ marginBottom: 6 }}>📊 CPU: <strong>{metrics.cpuUsage > 80 ? 'HIGH' : metrics.cpuUsage > 50 ? 'MODERATE' : 'LOW'}</strong></div>
+                  <div style={{ marginBottom: 6 }}>💾 Memory: <strong>{metrics.memoryUsage > 85 ? 'HIGH' : metrics.memoryUsage > 65 ? 'MODERATE' : 'LOW'}</strong></div>
+                  <div>🌐 Network: <strong>{metrics.networkHealth > 80 ? 'HEALTHY' : 'DEGRADED'}</strong></div>
+                </div>
               </div>
             </div>
           </div>
