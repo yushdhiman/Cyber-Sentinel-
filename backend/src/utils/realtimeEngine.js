@@ -20,8 +20,8 @@ function initTimeline() {
     const m = d.getMinutes().toString().padStart(2, '0');
     return {
       hour: `${h}:${m}`,
-      attacks: Math.floor(Math.random() * 45) + 2,
-      blocked: Math.floor(Math.random() * 40) + 2,
+      attacks: Math.floor(Math.random() * 120) + 30,  // 30-150 attacks per bucket (increased from 2-45)
+      blocked: Math.floor(Math.random() * 100) + 20,  // 20-120 blocked per bucket
     };
   });
 }
@@ -83,26 +83,35 @@ function startRealtimeEngine(io) {
     }
   }, 2000);
 
-  // ── INTERVAL 2: New attack event every 3–7 seconds ──
+  // ── INTERVAL 2: New attack event every 2–5 seconds (more frequent) ──
   function emitNextAttack() {
-    const delay = 3000 + Math.random() * 4000; // 3–7 seconds
+    const delay = 2000 + Math.random() * 3000; // 2–5 seconds (more frequent than before)
     setTimeout(() => {
       try {
-        const [attack] = generateLiveAttacks(1);
-        attack.id = `rt-${++attackEventCounter}-${Date.now()}`;
-        attack.timestamp = new Date().toISOString();
-        // Bias towards more attacks when CPU is high
-        const cpuLoad = latestMetrics?.cpu?.usagePercent ?? 20;
-        if (cpuLoad > 70 || Math.random() > 0.4) {
-          io.emit('attack:event', attack);
-          // Increment the attacks count in the latest timeline bucket
-          if (attackTimeline.length > 0) {
-            attackTimeline[attackTimeline.length - 1].attacks++;
-            if (attack.blocked) {
-              attackTimeline[attackTimeline.length - 1].blocked++;
+        // Generate 1-3 attacks per event for more activity
+        const attackCount = Math.random() > 0.7 ? 3 : Math.random() > 0.4 ? 2 : 1;
+        const attacks = generateLiveAttacks(attackCount);
+        
+        attacks.forEach((attack, idx) => {
+          attack.id = `rt-${++attackEventCounter}-${Date.now()}-${idx}`;
+          attack.timestamp = new Date().toISOString();
+          
+          // Bias towards more attacks when CPU is high
+          const cpuLoad = latestMetrics?.cpu?.usagePercent ?? 20;
+          const attackThreshold = cpuLoad > 70 ? 0.3 : 0.5; // More attacks when CPU is high
+          
+          if (Math.random() > attackThreshold) {
+            io.emit('attack:event', attack);
+            
+            // Increment the attacks count in the latest timeline bucket
+            if (attackTimeline.length > 0) {
+              attackTimeline[attackTimeline.length - 1].attacks++;
+              if (attack.blocked) {
+                attackTimeline[attackTimeline.length - 1].blocked++;
+              }
             }
           }
-        }
+        });
       } catch (err) {
         console.error('[RT] Attack event error:', err.message);
       }
@@ -118,8 +127,8 @@ function startRealtimeEngine(io) {
     const m = now.getMinutes().toString().padStart(2, '0');
     const newBucket = {
       hour: `${h}:${m}`,
-      attacks: Math.floor(Math.random() * 50) + 5,
-      blocked: Math.floor(Math.random() * 45) + 5,
+      attacks: Math.floor(Math.random() * 120) + 40,   // 40-160 attacks per bucket (increased from 5-50)
+      blocked: Math.floor(Math.random() * 110) + 30,   // 30-140 blocked (increased from 5-45)
     };
     // Slide window: drop oldest, add newest
     attackTimeline = [...attackTimeline.slice(1), newBucket];
