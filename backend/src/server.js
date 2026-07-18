@@ -76,7 +76,17 @@ app.use('/api/system', apiLimiter, systemRoutes);
 app.use('/api/sandbox', apiLimiter, sandboxRoutes);
 app.use('/api/protection', apiLimiter, protectionRoutes);
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString(), websocket: 'enabled' }));
+app.get('/api/health', (req, res) => {
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https' ? 'https' : 'http';
+  const websocketUrl = process.env.RENDER_EXTERNAL_URL || `${protocol}://${host}`;
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    websocket: 'enabled',
+    websocketUrl
+  });
+});
 
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
 if (fs.existsSync(frontendDistPath)) {

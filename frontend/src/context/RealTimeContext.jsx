@@ -11,11 +11,7 @@ const RealTimeContext = createContext(null);
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 
                    (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/api' ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') : '') || 
-                   (import.meta.env.DEV 
-                     ? 'http://localhost:10000' 
-                     : (window.location.hostname.endsWith('vercel.app') 
-                         ? 'https://cyber-sentinel-7xfn.onrender.com' 
-                         : window.location.origin));
+                   (import.meta.env.DEV ? 'http://localhost:10000' : window.location.origin);
 const MAX_FEED_EVENTS = 60; // Rolling window of last 60 attacks
 const MAX_TIMELINE_BUCKETS = 24;
 
@@ -47,78 +43,110 @@ export function RealTimeProvider({ children }) {
     // Only connect when authenticated
     if (!token) return;
 
-    const socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-    });
-    socketRef.current = socket;
+    let socket = null;
+    let active = true;
 
-    socket.on('connect', () => {
-      setConnected(true);
-      console.log('[WS] Connected to real-time engine');
-    });
+    const initSocket = async () => {
+      let resolvedUrl = SOCKET_URL;
 
-    socket.on('disconnect', () => {
-      setConnected(false);
-      console.log('[WS] Disconnected — attempting reconnect...');
-    });
-
-    // ── REAL-TIME EVENTS ──
-
-    // System metrics: CPU, RAM, threat score, network health — every 2s
-    socket.on('system:metrics', (data) => {
-      setSystemMetrics(data);
-      if (data.liveAttackCount !== undefined) {
-        setLiveAttackCount(data.liveAttackCount);
+      // If we don't have a static VITE_SOCKET_URL, and VITE_API_URL is '/api' or empty (meaning we proxy),
+      // we can try to fetch the server's public URL dynamically from /api/health.
+      if (!import.meta.env.VITE_SOCKET_URL && 
+          (!import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL === '/api')) {
+        try {
+          const response = await fetch('/api/health');
+          if (response.ok && active) {
+            const data = await response.json();
+            if (data.websocketUrl) {
+              resolvedUrl = data.websocketUrl;
+              console.log('[WS] Discovered dynamic WebSocket URL:', resolvedUrl);
+            }
+          }
+        } catch (err) {
+          console.warn('[WS] Failed to fetch dynamic WebSocket URL, using fallback:', err);
+        }
       }
-    });
 
-    // New attack event — every 3–7s
-    socket.on('attack:event', (attack) => {
-      attackTimestamps.current.push(Date.now());
-      updateApm();
-      setAttackFeed(prev => {
-        const updated = [attack, ...prev].slice(0, MAX_FEED_EVENTS);
-        return updated;
+      if (!active) return;
+
+      socket = io(resolvedUrl, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
       });
-      setLiveAttackCount(prev => prev + 1);
-      if (attack.blocked) {
-        setBlockedCount(prev => prev + 1);
-      }
-    });
+      socketRef.current = socket;
 
-    // Full timeline on initial connect
-    socket.on('timeline:full', (data) => {
-      setTimeline(data.slice(-MAX_TIMELINE_BUCKETS));
-    });
+      socket.on('connect', () => {
+        setConnected(true);
+        console.log('[WS] Connected to real-time engine');
+      });
 
-    // Rolling timeline update — every 30s
-    socket.on('timeline:update', ({ timeline: newTimeline }) => {
-      setTimeline(newTimeline.slice(-MAX_TIMELINE_BUCKETS));
-    });
+      socket.on('disconnect', () => {
+        setConnected(false);
+        console.log('[WS] Disconnected — attempting reconnect...');
+      });
 
-    // Real network adapters — every 10s
-    socket.on('linked:devices', (devices) => {
-      setLinkedDevices(devices);
-    });
+      // ── REAL-TIME EVENTS ──
 
-    // Security findings from OS scan
-    socket.on('system:findings', (findings) => {
-      setSystemFindings(findings);
-    });
+      // System metrics: CPU, RAM, threat score, network health — every 2s
+      socket.on('system:metrics', (data) => {
+        setSystemMetrics(data);
+        if (data.liveAttackCount !== undefined) {
+          setLiveAttackCount(data.liveAttackCount);
+        }
+      });
 
-    // Critical alert (threatScore >= 60 + high severity finding)
-    socket.on('alert:critical', (alert) => {
-      setCriticalAlert(alert);
-      // Auto-clear after 8 seconds
-      setTimeout(() => setCriticalAlert(null), 8000);
-    });
+      // New attack event — every 3–7s
+      socket.on('attack:event', (attack) => {
+        attackTimestamps.current.push(Date.now());
+        updateApm();
+        setAttackFeed(prev => {
+          const updated = [attack, ...prev].slice(0, MAX_FEED_EVENTS);
+          return updated;
+        });
+        setLiveAttackCount(prev => prev + 1);
+        if (attack.blocked) {
+          setBlockedCount(prev => prev + 1);
+        }
+      });
+
+      // Full timeline on initial connect
+      socket.on('timeline:full', (data) => {
+        setTimeline(data.slice(-MAX_TIMELINE_BUCKETS));
+      });
+
+      // Rolling timeline update — every 30s
+      socket.on('timeline:update', ({ timeline: newTimeline }) => {
+        setTimeline(newTimeline.slice(-MAX_TIMELINE_BUCKETS));
+      });
+
+      // Real network adapters — every 10s
+      socket.on('linked:devices', (devices) => {
+        setLinkedDevices(devices);
+      });
+
+      // Security findings from OS scan
+      socket.on('system:findings', (findings) => {
+        setSystemFindings(findings);
+      });
+
+      // Critical alert (threatScore >= 60 + high severity finding)
+      socket.on('alert:critical', (alert) => {
+        setCriticalAlert(alert);
+        // Auto-clear after 8 seconds
+        setTimeout(() => setCriticalAlert(null), 8000);
+      });
+    };
+
+    initSocket();
 
     return () => {
-      socket.disconnect();
+      active = false;
+      if (socket) {
+        socket.disconnect();
+      }
       socketRef.current = null;
       setConnected(false);
     };
