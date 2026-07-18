@@ -2,8 +2,7 @@
 
 A full-stack cybersecurity operations and threat monitoring suite designed for security analysts. It features live network telemetry, heuristic security scans, phishing detection, a malware sandbox, and an offline AI Security Assistant.
 
-🚀 **Frontend (Vercel):** [https://cyber-sentinel-pwvj.vercel.app/](https://cyber-sentinel-pwvj.vercel.app/)
-🚀 **Backend (Render):** [https://cyber-sentinel-7xfn.onrender.com/](https://cyber-sentinel-7xfn.onrender.com/)
+🚀 **Live Demo:** [https://cyber-sentinel-pwvj.vercel.app/](https://cyber-sentinel-pwvj.vercel.app/)
 
 ---
 
