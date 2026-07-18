@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userStore = require('../data/userStore');
+const { sendVerificationCode, sendMFACode } = require('../utils/notifier');
 
 const router = express.Router();
 
@@ -92,6 +93,14 @@ router.post('/login', async (req, res) => {
 
       mfaCodes.set(user.email.toLowerCase(), { code, expiresAt });
 
+      const mfaType = user.isEmailVerified ? 'email' : 'phone';
+      const mfaTarget = mfaType === 'email' ? user.email : user.phone;
+
+      // Send the code asynchronously so it doesn't block the HTTP response
+      sendMFACode({ type: mfaType, target: mfaTarget, code }).catch(err => {
+        console.error(`[MFA] Error dispatching code to ${mfaTarget}:`, err.message);
+      });
+
       console.log(`\n==========================================`);
       console.log(`[MFA] Login MFA code generated for ${user.email}`);
       console.log(`[MFA] Target: ${user.isEmailVerified ? 'EMAIL' : 'PHONE'}`);
@@ -100,7 +109,7 @@ router.post('/login', async (req, res) => {
 
       return res.json({
         mfaRequired: true,
-        mfaType: user.isEmailVerified ? 'email' : 'phone',
+        mfaType,
         email: user.email,
         code, // returned for convenience of local testing
       });
@@ -304,6 +313,11 @@ router.post('/send-verification', requireAuth, async (req, res) => {
 
     const key = `${user.email.toLowerCase()}:${type}`;
     verificationCodes.set(key, { code, expiresAt });
+
+    // Send the code asynchronously so it doesn't block the HTTP response
+    sendVerificationCode({ type, target, code }).catch(err => {
+      console.error(`[VERIFICATION] Error dispatching code to ${target}:`, err.message);
+    });
 
     console.log(`\n==========================================`);
     console.log(`[VERIFICATION] Code generated for ${user.email}`);
