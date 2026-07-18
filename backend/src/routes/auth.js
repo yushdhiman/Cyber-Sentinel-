@@ -292,7 +292,7 @@ router.put('/profile', requireAuth, async (req, res) => {
 // Send verification code
 router.post('/send-verification', requireAuth, async (req, res) => {
   try {
-    const { type } = req.body;
+    const { type, target } = req.body;
     if (type !== 'email' && type !== 'phone') {
       return res.status(400).json({ error: 'Verification type must be either email or phone' });
     }
@@ -302,8 +302,34 @@ router.post('/send-verification', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Operator account not found' });
     }
 
-    const target = type === 'email' ? user.email : user.phone;
-    if (!target) {
+    let finalTarget = target || (type === 'email' ? user.email : user.phone);
+
+    if (type === 'email') {
+      if (target && target.toLowerCase() !== user.email.toLowerCase()) {
+        const emailLower = target.toLowerCase();
+        if (!EMAIL_RE.test(emailLower)) {
+          return res.status(400).json({ error: 'Invalid email format' });
+        }
+        const existing = userStore.findByEmail(emailLower);
+        if (existing && existing.email.toLowerCase() !== user.email.toLowerCase()) {
+          return res.status(409).json({ error: 'An operator with this email already exists' });
+        }
+        const oldEmail = user.email;
+        user.email = emailLower;
+        user.isEmailVerified = false;
+        userStore.updateUserEmail(oldEmail, user.email, user);
+        finalTarget = emailLower;
+      }
+    } else {
+      if (target && target !== (user.phone || '')) {
+        user.phone = target;
+        user.isPhoneVerified = false;
+        userStore.updateUser(user);
+        finalTarget = target;
+      }
+    }
+
+    if (!finalTarget) {
       return res.status(400).json({ error: `No ${type} registered to verify` });
     }
 
@@ -315,18 +341,18 @@ router.post('/send-verification', requireAuth, async (req, res) => {
     verificationCodes.set(key, { code, expiresAt });
 
     // Send the code asynchronously so it doesn't block the HTTP response
-    sendVerificationCode({ type, target, code }).catch(err => {
-      console.error(`[VERIFICATION] Error dispatching code to ${target}:`, err.message);
+    sendVerificationCode({ type, target: finalTarget, code }).catch(err => {
+      console.error(`[VERIFICATION] Error dispatching code to ${finalTarget}:`, err.message);
     });
 
     console.log(`\n==========================================`);
     console.log(`[VERIFICATION] Code generated for ${user.email}`);
-    console.log(`[VERIFICATION] Target ${type.toUpperCase()}: ${target}`);
+    console.log(`[VERIFICATION] Target ${type.toUpperCase()}: ${finalTarget}`);
     console.log(`[VERIFICATION] CODE: ${code}`);
     console.log(`==========================================\n`);
 
     return res.json({
-      message: `Verification code sent to ${target} successfully.`,
+      message: `Verification code sent to ${finalTarget} successfully.`,
       code, // returned for convenience of local testing
     });
   } catch (err) {

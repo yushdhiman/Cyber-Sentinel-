@@ -156,13 +156,20 @@ export default function Profile() {
     setVerificationCode('');
     setVerifyingType(type);
     try {
-      const response = await client.post('/auth/send-verification', { type });
+      const targetValue = type === 'email' ? email : phone;
+      if (!targetValue) {
+        setVerifyError(`Please specify a valid ${type === 'email' ? 'email' : 'phone number'} first.`);
+        setVerifyingType(null);
+        return;
+      }
+      const response = await client.post('/auth/send-verification', { type, target: targetValue });
       setVerifySuccess(`Verification code generated for ${type === 'email' ? 'email' : 'phone number'}.`);
       if (response.data && response.data.code) {
         setLocalVerificationCode(response.data.code);
       }
     } catch (err) {
       setVerifyError(err.response?.data?.error || 'Failed to send verification code.');
+      setVerifyingType(null);
     }
   };
 
