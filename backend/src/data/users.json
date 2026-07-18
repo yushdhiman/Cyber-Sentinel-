@@ -20,6 +20,18 @@
     "passwordHash": "$2a$12$qgujBbSa27Y3424GkyEsV.qEHEwOPWymOxbjP5Xbfh.ksIGZzVape",
     "role": "analyst",
     "createdAt": "2026-07-11T19:25:57.114Z",
-    "profilePic": null
+    "profilePic": null,
+    "isEmailVerified": true
+  },
+  "test_operator@sentinel.ai": {
+    "name": "Test Operator",
+    "email": "test_operator@sentinel.ai",
+    "phone": "+1234567899",
+    "passwordHash": "$2a$12$mKs0guZBXZ4NgHk1DVSIducsmA4CJTsL3ysHmfj5xko0Q2NPBMrnq",
+    "role": "analyst",
+    "profilePic": null,
+    "createdAt": "2026-07-17T05:55:15.093Z",
+    "isEmailVerified": true,
+    "isPhoneVerified": false
   }
 }

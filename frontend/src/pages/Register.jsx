@@ -7,6 +7,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +17,7 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      await register(name, email, password);
+      await register(name, email, password, phone);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Review details and retry.');
@@ -60,6 +61,10 @@ export default function Register() {
             <label>
               OPERATOR ID (EMAIL)
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@sentinel.local" />
+            </label>
+            <label>
+              OPERATOR PHONE NUMBER (OPTIONAL)
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. +15550000000" />
             </label>
             <label>
               ACCESS PASSCODE

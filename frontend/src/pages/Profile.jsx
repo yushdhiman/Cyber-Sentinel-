@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import client from '../api/client';
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, verifyCode } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -14,6 +16,14 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Verification process states
+  const [verifyingType, setVerifyingType] = useState(null); // 'email' | 'phone' | null
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [verifySuccess, setVerifySuccess] = useState('');
+  const [localVerificationCode, setLocalVerificationCode] = useState('');
   
   const fileInputRef = useRef(null);
 
@@ -108,6 +118,7 @@ export default function Profile() {
       const payload = {
         name,
         email,
+        phone,
       };
 
       if (newPassword) {
@@ -125,6 +136,7 @@ export default function Profile() {
       const updatedUser = await updateProfile(payload);
       setProfilePic(updatedUser.profilePic);
       setPreviewPic(null);
+      setPhone(updatedUser.phone || '');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -134,6 +146,41 @@ export default function Profile() {
       setError(err.response?.data?.error || 'Profile update failed. Verify current credentials.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendVerification = async (type) => {
+    setVerifyError('');
+    setVerifySuccess('');
+    setLocalVerificationCode('');
+    setVerificationCode('');
+    setVerifyingType(type);
+    try {
+      const response = await client.post('/auth/send-verification', { type });
+      setVerifySuccess(`Verification code generated for ${type === 'email' ? 'email' : 'phone number'}.`);
+      if (response.data && response.data.code) {
+        setLocalVerificationCode(response.data.code);
+      }
+    } catch (err) {
+      setVerifyError(err.response?.data?.error || 'Failed to send verification code.');
+    }
+  };
+
+  const handleVerifyCodeSubmit = async (e) => {
+    e.preventDefault();
+    setVerifyError('');
+    setVerifySuccess('');
+    setVerifyLoading(true);
+    try {
+      await verifyCode(verifyingType, verificationCode);
+      setVerifySuccess(`${verifyingType === 'email' ? 'Email' : 'Phone'} verified successfully.`);
+      setVerifyingType(null);
+      setVerificationCode('');
+      setLocalVerificationCode('');
+    } catch (err) {
+      setVerifyError(err.response?.data?.error || 'Verification failed. Double check the code.');
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
@@ -402,6 +449,120 @@ export default function Profile() {
             grid-template-columns: 1fr;
           }
         }
+
+        .verification-badge {
+          font-family: 'Space Grotesk', monospace;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+
+        .verification-badge.verified {
+          background: var(--accent-green-dim);
+          border: 1px solid var(--accent-green);
+          color: var(--accent-green);
+        }
+
+        .verification-badge.unverified {
+          background: var(--accent-red-dim);
+          border: 1px solid var(--accent-red);
+          color: var(--accent-red);
+        }
+
+        .verify-action-btn {
+          background: none;
+          border: none;
+          color: var(--accent-cyan);
+          font-family: 'Space Grotesk', monospace;
+          font-size: 10px;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 0;
+          text-transform: uppercase;
+          transition: text-shadow 0.2s;
+        }
+
+        .verify-action-btn:hover {
+          text-shadow: 0 0 6px var(--accent-cyan);
+          color: var(--text);
+        }
+
+        .verification-box {
+          margin-top: 18px;
+          background: var(--surface);
+          border: 1px solid var(--border-active);
+          border-radius: 8px;
+          padding: 16px;
+          box-shadow: var(--shadow);
+          animation: slideDown 0.25s ease-out;
+        }
+
+        .verification-box-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-family: 'Space Grotesk', sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--accent-cyan);
+          letter-spacing: 0.05em;
+        }
+
+        .verification-box-header .close-btn {
+          background: none;
+          border: none;
+          color: var(--text-dim);
+          font-size: 16px;
+          cursor: pointer;
+        }
+
+        .verification-box-header .close-btn:hover {
+          color: var(--accent-red);
+        }
+
+        .developer-code-helper {
+          background: var(--bg);
+          border: 1px dashed var(--border);
+          border-radius: 6px;
+          padding: 8px 12px;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-family: 'Space Grotesk', monospace;
+          font-size: 11px;
+        }
+
+        .helper-label {
+          color: var(--text-faint);
+        }
+
+        .helper-code {
+          color: var(--accent-orange);
+          font-weight: 700;
+          letter-spacing: 0.1em;
+        }
+
+        .helper-copy-btn {
+          background: none;
+          border: none;
+          color: var(--accent-cyan);
+          font-size: 10px;
+          cursor: pointer;
+          font-weight: 700;
+        }
+
+        .helper-copy-btn:hover {
+          color: var(--text);
+        }
+
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
       {/* HUD Page Header */}
@@ -492,17 +653,130 @@ export default function Profile() {
                   placeholder="Operator Name" 
                 />
               </label>
-              <label className="profile-input-label">
-                Registered Email ID
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="profile-input-label" style={{ margin: 0 }}>Registered Email ID</span>
+                  {user?.isEmailVerified ? (
+                    <span className="verification-badge verified">✓ Verified</span>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="verification-badge unverified">⚠ Unverified</span>
+                      <button 
+                        type="button" 
+                        className="verify-action-btn"
+                        onClick={() => handleSendVerification('email')}
+                      >
+                        [Verify]
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <input 
                   type="email" 
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
                   required 
                   placeholder="operator@sentinel.ai" 
+                  style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', padding: '10px 14px', color: 'var(--text)' }}
                 />
-              </label>
+              </div>
             </div>
+
+            <div className="form-grid-2" style={{ marginTop: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="profile-input-label" style={{ margin: 0 }}>Operator Phone Number</span>
+                  {phone ? (
+                    user?.isPhoneVerified ? (
+                      <span className="verification-badge verified">✓ Verified</span>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="verification-badge unverified">⚠ Unverified</span>
+                        <button 
+                          type="button" 
+                          className="verify-action-btn"
+                          onClick={() => handleSendVerification('phone')}
+                        >
+                          [Verify]
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    <span className="verification-badge none" style={{ color: 'var(--text-faint)' }}>Not Set</span>
+                  )}
+                </div>
+                <input 
+                  type="tel" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                  placeholder="e.g. +15550000000" 
+                  style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', padding: '10px 14px', color: 'var(--text)' }}
+                />
+              </div>
+            </div>
+
+            {verifyingType && (
+              <div className="verification-box">
+                <div className="verification-box-header">
+                  <span>AUTHENTICATE {verifyingType.toUpperCase()} SECURE KEY</span>
+                  <button type="button" className="close-btn" onClick={() => setVerifyingType(null)}>×</button>
+                </div>
+                <p style={{ fontSize: '11px', margin: '4px 0 12px', color: 'var(--text-dim)' }}>
+                  A verification code has been dispatched. Enter the 6-digit key below.
+                </p>
+
+                {localVerificationCode && (
+                  <div className="developer-code-helper">
+                    <span className="helper-label">LOCAL TEST BYPASS KEY:</span>
+                    <span className="helper-code">{localVerificationCode}</span>
+                    <button 
+                      type="button" 
+                      className="helper-copy-btn"
+                      onClick={() => setVerificationCode(localVerificationCode)}
+                    >
+                      [Auto Fill]
+                    </button>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    value={verificationCode} 
+                    onChange={(e) => setVerificationCode(e.target.value)} 
+                    placeholder="Enter 6-digit code" 
+                    required 
+                    maxLength={6}
+                    pattern="[0-9]*"
+                    style={{ 
+                      flex: 1, 
+                      letterSpacing: '0.2em', 
+                      textAlign: 'center', 
+                      fontSize: '16px', 
+                      fontFamily: 'JetBrains Mono, monospace',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      color: 'var(--text)',
+                      padding: '8px'
+                    }}
+                  />
+                  <button 
+                    type="button"
+                    onClick={handleVerifyCodeSubmit}
+                    className="btn-primary" 
+                    disabled={verifyLoading}
+                    style={{ padding: '8px 16px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                  >
+                    {verifyLoading ? 'VERIFYING...' : 'AUTHORIZE'}
+                  </button>
+                </div>
+                
+                {verifyError && <div className="form-status-msg error" style={{ marginTop: '12px', marginBottom: 0 }}>{verifyError}</div>}
+                {verifySuccess && <div className="form-status-msg success" style={{ marginTop: '12px', marginBottom: 0 }}>{verifySuccess}</div>}
+              </div>
+            )}
 
             <div className="form-section-title">⬡ Cryptographic Access Passcode</div>
             <div className="form-grid-2">

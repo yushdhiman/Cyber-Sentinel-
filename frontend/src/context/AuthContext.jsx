@@ -13,14 +13,25 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const { data } = await client.post('/auth/login', { email, password });
+    if (data.mfaRequired) {
+      return data;
+    }
     localStorage.setItem('cs_token', data.token);
     localStorage.setItem('cs_user', JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
   }, []);
 
-  const register = useCallback(async (name, email, password) => {
-    const { data } = await client.post('/auth/register', { name, email, password });
+  const loginMFA = useCallback(async (email, code) => {
+    const { data } = await client.post('/auth/verify-mfa', { email, code });
+    localStorage.setItem('cs_token', data.token);
+    localStorage.setItem('cs_user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const register = useCallback(async (name, email, password, phone) => {
+    const { data } = await client.post('/auth/register', { name, email, password, phone });
     localStorage.setItem('cs_token', data.token);
     localStorage.setItem('cs_user', JSON.stringify(data.user));
     setUser(data.user);
@@ -37,14 +48,26 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
-  const logout = useCallback(() => {
+  const verifyCode = useCallback(async (type, code) => {
+    const { data } = await client.post('/auth/verify-code', { type, code });
+    localStorage.setItem('cs_user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await client.post('/auth/logout');
+    } catch (e) {
+      console.warn('Logout log error', e);
+    }
     localStorage.removeItem('cs_token');
     localStorage.removeItem('cs_user');
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, token, login, loginMFA, register, logout, updateProfile, verifyCode }}>
       {children}
     </AuthContext.Provider>
   );
