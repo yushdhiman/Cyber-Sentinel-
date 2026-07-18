@@ -1,13 +1,21 @@
 {
-  "outputDirectory": "frontend/dist",
+  "services": {
+    "frontend": {
+      "root": "frontend"
+    },
+    "backend": {
+      "root": "backend"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://your-backend-url.example/api/:path*"
+      "destination": { "service": "backend" }
     },
     {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
+      "source": "/(.*)",
+      "destination": { "service": "frontend" }
     }
   ]
 }
+
