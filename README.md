@@ -1,6 +1,6 @@
 # Cyber Sentinel — AI-Assisted Threat Monitoring Dashboard
 
-A full-stack security operations dashboard built with **React (Vite)** on the frontend and **Node.js / Express** on the backend. It demonstrates authentication, log-based threat detection, a vulnerability checklist scanner, a security-focused chatbot, and a live-feeling attack dashboard — all running end-to-end with no external API keys required.
+A full-stack security operations dashboard built with **React 18 (Vite)** on the frontend and **Node.js / Express** on the backend. It demonstrates authentication, log-based threat detection, a vulnerability checklist scanner, a security-focused chatbot, and a live-feeling attack dashboard — all running end-to-end with no external API keys required.
 
 🚀 **Frontend (Vercel):** [https://cyber-sentinel-pwvj.vercel.app/](https://cyber-sentinel-pwvj.vercel.app/)
 🚀 **Backend (Render):** [https://cyber-sentinel-7xfn.onrender.com/](https://cyber-sentinel-7xfn.onrender.com/)
