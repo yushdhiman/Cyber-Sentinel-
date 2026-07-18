@@ -15,7 +15,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 2h
       - key: CORS_ORIGIN
-        value: https://your-app-name.onrender.com
+        value: "*"
       - key: GEMINI_API_KEY
         sync: false
 
