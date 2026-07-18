@@ -5,7 +5,7 @@
       "destination": "https://cyber-sentinel-7xfn.onrender.com/api/:path*"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
