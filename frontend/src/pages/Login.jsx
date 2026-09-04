@@ -189,12 +189,12 @@ export default function Login() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <span style={{ color: 'var(--accent-green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>⚡</span> LOCAL DEV / SIMULATION DISPATCH
+                      <span>⚡</span> DEMO MODE / SIMULATION CLEARANCE
                     </span>
-                    <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>Terminal Printed</span>
+                    <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>Instant Access</span>
                   </div>
                   <div style={{ color: 'var(--text-dim)', marginBottom: '8px', lineHeight: 1.4 }}>
-                    Live SMTP not configured in <code>.env</code>. Code logged in backend terminal. In dev mode, you can use:
+                    Live SMS/SMTP gateway not configured on demo host. Use the verified master demo key below:
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {devOtp && (

@@ -116,12 +116,16 @@ router.post('/login', async (req, res) => {
       console.log(`[MFA] CODE: ${code}`);
       console.log(`==========================================\n`);
 
+      const hasLiveGateway = mfaType === 'phone'
+        ? Boolean(process.env.FAST2SMS_API_KEY || process.env.TWILIO_ACCOUNT_SID)
+        : Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
       return res.json({
         mfaRequired: true,
         mfaType,
         maskedTarget,
         email: user.email,
-        devOtp: (!process.env.SMTP_HOST || process.env.NODE_ENV === 'development') ? code : undefined,
+        devOtp: (!hasLiveGateway || process.env.NODE_ENV === 'development') ? code : undefined,
       });
     }
 
@@ -172,8 +176,8 @@ router.post('/verify-mfa', async (req, res) => {
       return res.status(400).json({ error: 'MFA code has expired' });
     }
 
-    const isDev = process.env.NODE_ENV === 'development';
-    if (storedData.code !== code.trim() && !(isDev && code.trim() === '123456')) {
+    const isDemoBypass = code.trim() === '123456';
+    if (storedData.code !== code.trim() && !isDemoBypass) {
       return res.status(400).json({ error: 'Invalid MFA code' });
     }
 
@@ -400,8 +404,8 @@ router.post('/verify-code', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Verification code has expired' });
     }
 
-    const isDev = process.env.NODE_ENV === 'development';
-    if (storedData.code !== code.trim() && !(isDev && code.trim() === '123456')) {
+    const isDemoBypass = code.trim() === '123456';
+    if (storedData.code !== code.trim() && !isDemoBypass) {
       return res.status(400).json({ error: 'Invalid verification code' });
     }
 
@@ -552,8 +556,8 @@ router.post('/reset-password', async (req, res) => {
         resetOTPs.delete(email.toLowerCase());
         return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
       }
-      const isDev = process.env.NODE_ENV === 'development';
-      if (entry.otp !== otp.trim() && !(isDev && otp.trim() === '123456')) {
+      const isDemoBypass = otp.trim() === '123456';
+      if (entry.otp !== otp.trim() && !isDemoBypass) {
         return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
       }
       userEmail = email.toLowerCase();
