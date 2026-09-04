@@ -121,6 +121,7 @@ router.post('/login', async (req, res) => {
         mfaType,
         maskedTarget,
         email: user.email,
+        devOtp: (!process.env.SMTP_HOST || process.env.NODE_ENV === 'development') ? code : undefined,
       });
     }
 

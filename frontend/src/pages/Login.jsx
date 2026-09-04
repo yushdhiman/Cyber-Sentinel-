@@ -15,6 +15,7 @@ export default function Login() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaType, setMfaType] = useState('phone'); // 'phone' | 'email'
   const [maskedTarget, setMaskedTarget] = useState('');
+  const [devOtp, setDevOtp] = useState('');
   const [mfaCode, setMfaCode] = useState('');
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
@@ -46,6 +47,7 @@ export default function Login() {
           setMfaRequired(true);
           setMfaType(res.mfaType || 'phone');
           setMaskedTarget(res.maskedTarget || '');
+          if (res.devOtp) setDevOtp(res.devOtp);
           setResendTimer(30);
           setCanResend(false);
         } else {
@@ -64,7 +66,10 @@ export default function Login() {
     setError('');
     setResendSuccess('');
     try {
-      await client.post('/auth/login', { email, password });
+      const { data } = await client.post('/auth/login', { email, password });
+      if (data && data.devOtp) {
+        setDevOtp(data.devOtp);
+      }
       setResendSuccess('New security OTP has been dispatched.');
       setResendTimer(30);
       setCanResend(false);
@@ -169,6 +174,65 @@ export default function Login() {
                     <div style={{ color: 'var(--text-dim)' }}>
                       Enter the 6-digit single-use authorization code sent to <strong>{maskedTarget || (mfaType === 'phone' ? 'your mobile' : 'your email')}</strong>.
                     </div>
+                  </div>
+                </div>
+
+                {/* Development / Simulation Mode OTP Helper */}
+                <div style={{
+                  background: 'rgba(0, 255, 136, 0.07)',
+                  border: '1px solid rgba(0, 255, 136, 0.28)',
+                  borderRadius: '6px',
+                  padding: '10px 12px',
+                  marginBottom: '14px',
+                  fontSize: '11px',
+                  fontFamily: 'Space Grotesk, sans-serif'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: 'var(--accent-green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚡</span> LOCAL DEV / SIMULATION DISPATCH
+                    </span>
+                    <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>Terminal Printed</span>
+                  </div>
+                  <div style={{ color: 'var(--text-dim)', marginBottom: '8px', lineHeight: 1.4 }}>
+                    Live SMTP not configured in <code>.env</code>. Code logged in backend terminal. In dev mode, you can use:
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {devOtp && (
+                      <button
+                        type="button"
+                        onClick={() => setMfaCode(devOtp)}
+                        style={{
+                          background: 'rgba(0, 212, 255, 0.15)',
+                          border: '1px solid var(--accent-cyan)',
+                          color: 'var(--accent-cyan)',
+                          fontFamily: 'JetBrains Mono, monospace',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Autofill: {devOtp}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setMfaCode('123456')}
+                      style={{
+                        background: 'rgba(0, 255, 136, 0.15)',
+                        border: '1px solid var(--accent-green)',
+                        color: 'var(--accent-green)',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        padding: '4px 10px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Use Dev Bypass: 123456
+                    </button>
                   </div>
                 </div>
 
