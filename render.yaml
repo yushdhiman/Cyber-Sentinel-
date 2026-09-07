@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cyber-sentinel
+    name: Cyber-Sentinel-backend
     env: node
     plan: free
     buildCommand: npm install --include=dev && npm run build
