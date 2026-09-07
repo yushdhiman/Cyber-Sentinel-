@@ -172,7 +172,7 @@ function CountrySelector({ selected, onChange }) {
 }
 
 export default function Profile() {
-  const { user, updateProfile, verifyCode } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   
@@ -190,13 +190,6 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // Verification process states
-  const [verifyingType, setVerifyingType] = useState(null); // 'email' | 'phone' | null
-  const [verificationCode, setVerificationCode] = useState('');
-  const [verifyLoading, setVerifyLoading] = useState(false);
-  const [verifyError, setVerifyError] = useState('');
-  const [verifySuccess, setVerifySuccess] = useState('');
   
   const fileInputRef = useRef(null);
 
@@ -314,43 +307,6 @@ export default function Profile() {
       setError(err.response?.data?.error || 'Profile update failed. Verify current credentials.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSendVerification = async (type) => {
-    setVerifyError('');
-    setVerifySuccess('');
-    setVerificationCode('');
-    setVerifyingType(type);
-    try {
-      const targetValue = type === 'email' ? email : fullPhone;
-      if (!targetValue) {
-        setVerifyError(`Please specify a valid ${type === 'email' ? 'email' : 'mobile number with country code'} first.`);
-        setVerifyingType(null);
-        return;
-      }
-      await client.post('/auth/send-verification', { type, target: targetValue });
-      setVerifySuccess(`Verification OTP has been transmitted to ${type === 'email' ? email : fullPhone}.`);
-    } catch (err) {
-      setVerifyError(err.response?.data?.error || 'Failed to dispatch verification code.');
-      setVerifyingType(null);
-    }
-  };
-
-  const handleVerifyCodeSubmit = async (e) => {
-    e.preventDefault();
-    setVerifyError('');
-    setVerifySuccess('');
-    setVerifyLoading(true);
-    try {
-      await verifyCode(verifyingType, verificationCode);
-      setVerifySuccess(`${verifyingType === 'email' ? 'Email' : 'Mobile number'} verified successfully.`);
-      setVerifyingType(null);
-      setVerificationCode('');
-    } catch (err) {
-      setVerifyError(err.response?.data?.error || 'Verification failed. Double check the 6-digit OTP.');
-    } finally {
-      setVerifyLoading(false);
     }
   };
 
@@ -777,25 +733,9 @@ export default function Profile() {
                   placeholder="Operator Name" 
                 />
               </label>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="profile-input-label" style={{ margin: 0 }}>Registered Email ID</span>
-                  {user?.isEmailVerified ? (
-                    <span className="verification-badge verified">✓ Verified</span>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="verification-badge unverified">⚠ Unverified</span>
-                      <button 
-                        type="button" 
-                        className="verify-action-btn"
-                        onClick={() => handleSendVerification('email')}
-                      >
-                        [Verify]
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <span className="profile-input-label" style={{ margin: 0 }}>Registered Email ID</span>
                 <input 
                   type="email" 
                   value={email} 
@@ -808,29 +748,9 @@ export default function Profile() {
 
             {/* Mobile Number Section with Full Country Selector */}
             <div style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span className="profile-input-label" style={{ margin: 0 }}>
-                  REGISTERED OPERATOR MOBILE NUMBER
-                </span>
-                {user?.phone ? (
-                  user?.isPhoneVerified ? (
-                    <span className="verification-badge verified">✓ OTP Verified</span>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="verification-badge unverified">⚠ Unverified</span>
-                      <button 
-                        type="button" 
-                        className="verify-action-btn"
-                        onClick={() => handleSendVerification('phone')}
-                      >
-                        [Verify via OTP]
-                      </button>
-                    </div>
-                  )
-                ) : (
-                  <span className="verification-badge none" style={{ color: 'var(--text-faint)' }}>Not Set</span>
-                )}
-              </div>
+              <span className="profile-input-label" style={{ display: 'block', marginBottom: '8px' }}>
+                REGISTERED OPERATOR MOBILE NUMBER
+              </span>
 
               <div style={{ display: 'flex', height: '42px' }}>
                 <CountrySelector selected={country} onChange={setCountry} />
@@ -859,55 +779,6 @@ export default function Profile() {
                 </div>
               )}
             </div>
-
-            {verifyingType && (
-              <div className="verification-box">
-                <div className="verification-box-header">
-                  <span>AUTHENTICATE {verifyingType.toUpperCase()} SECURE KEY</span>
-                  <button type="button" className="close-btn" onClick={() => setVerifyingType(null)}>×</button>
-                </div>
-                <p style={{ fontSize: '11px', margin: '4px 0 12px', color: 'var(--text-dim)' }}>
-                  A 6-digit verification code has been dispatched to <strong>{verifyingType === 'email' ? email : fullPhone}</strong>.
-                </p>
-
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input 
-                    type="text" 
-                    value={verificationCode} 
-                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))} 
-                    placeholder="000000" 
-                    required 
-                    maxLength={6}
-                    pattern="[0-9]*"
-                    style={{ 
-                      flex: 1, 
-                      letterSpacing: '0.3em', 
-                      textAlign: 'center', 
-                      fontSize: '16px', 
-                      fontWeight: 700,
-                      fontFamily: 'JetBrains Mono, monospace',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      color: 'var(--text)',
-                      padding: '10px'
-                    }}
-                  />
-                  <button 
-                    type="button"
-                    onClick={handleVerifyCodeSubmit}
-                    className="btn-primary" 
-                    disabled={verifyLoading || verificationCode.length < 6}
-                    style={{ padding: '10px 18px', fontSize: '11px', whiteSpace: 'nowrap' }}
-                  >
-                    {verifyLoading ? 'VERIFYING...' : 'AUTHORIZE OTP'}
-                  </button>
-                </div>
-                
-                {verifyError && <div className="form-status-msg error" style={{ marginTop: '12px', marginBottom: 0 }}>{verifyError}</div>}
-                {verifySuccess && <div className="form-status-msg success" style={{ marginTop: '12px', marginBottom: 0 }}>{verifySuccess}</div>}
-              </div>
-            )}
 
             <div className="form-section-title">⬡ Cryptographic Access Passcode</div>
             <div className="form-grid-2">

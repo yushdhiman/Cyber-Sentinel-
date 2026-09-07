@@ -13,9 +13,6 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const { data } = await client.post('/auth/login', { email, password });
-    if (data.mfaRequired) {
-      return data;
-    }
     localStorage.setItem('cs_token', data.token);
     localStorage.setItem('cs_user', JSON.stringify(data.user));
     setUser(data.user);

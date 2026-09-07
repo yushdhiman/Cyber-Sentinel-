@@ -44,8 +44,8 @@ router.post('/register', async (req, res) => {
       role: 'analyst',
       profilePic: null,
       createdAt: new Date().toISOString(),
-      isEmailVerified: false,
-      isPhoneVerified: false,
+      isEmailVerified: true,
+      isPhoneVerified: true,
     });
 
     const token = jwt.sign(
@@ -63,8 +63,8 @@ router.post('/register', async (req, res) => {
         profilePic: user.profilePic || null,
         createdAt: user.createdAt,
         phone: user.phone || '',
-        isEmailVerified: !!user.isEmailVerified,
-        isPhoneVerified: !!user.isPhoneVerified
+        isEmailVerified: true,
+        isPhoneVerified: true
       }
     });
   } catch (err) {
@@ -82,51 +82,12 @@ router.post('/login', async (req, res) => {
 
     const user = userStore.findByEmail(email);
     if (!user) {
-      // Same generic message as bad-password to avoid user enumeration.
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    // Enforce MFA: phone takes priority over email if registered
-    const hasPhone = user.phone && user.phone.trim().length > 0;
-    const mfaType = hasPhone ? 'phone' : (user.isEmailVerified ? 'email' : null);
-
-    if (mfaType) {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-
-      mfaCodes.set(user.email.toLowerCase(), { code, expiresAt });
-
-      const mfaTarget = mfaType === 'phone' ? user.phone : user.email;
-      const maskedTarget = mfaType === 'phone'
-        ? user.phone.slice(0, -4).replace(/\d/g, '•') + user.phone.slice(-4)
-        : user.email.replace(/(.{2}).*(@.*)/, '$1••••$2');
-
-      sendMFACode({ type: mfaType, target: mfaTarget, code }).catch(err => {
-        console.error(`[MFA] Error dispatching code to ${mfaTarget}:`, err.message);
-      });
-
-      console.log(`\n==========================================`);
-      console.log(`[MFA] Login OTP generated for ${user.email}`);
-      console.log(`[MFA] Target: ${mfaType.toUpperCase()} → ${mfaTarget}`);
-      console.log(`[MFA] CODE: ${code}`);
-      console.log(`==========================================\n`);
-
-      const hasLiveGateway = mfaType === 'phone'
-        ? Boolean(process.env.FAST2SMS_API_KEY || process.env.TWILIO_ACCOUNT_SID)
-        : Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
-
-      return res.json({
-        mfaRequired: true,
-        mfaType,
-        maskedTarget,
-        email: user.email,
-        devOtp: (!hasLiveGateway || process.env.NODE_ENV === 'development') ? code : undefined,
-      });
     }
 
     const token = jwt.sign(
@@ -144,8 +105,8 @@ router.post('/login', async (req, res) => {
         profilePic: user.profilePic || null,
         createdAt: user.createdAt,
         phone: user.phone || '',
-        isEmailVerified: !!user.isEmailVerified,
-        isPhoneVerified: !!user.isPhoneVerified
+        isEmailVerified: true,
+        isPhoneVerified: true
       }
     });
   } catch (err) {

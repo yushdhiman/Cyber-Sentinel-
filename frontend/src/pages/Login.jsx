@@ -1,80 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import client from '../api/client';
 
 export default function Login() {
-  const { login, loginMFA } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // 2FA/MFA OTP state
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaType, setMfaType] = useState('phone'); // 'phone' | 'email'
-  const [maskedTarget, setMaskedTarget] = useState('');
-  const [devOtp, setDevOtp] = useState('');
-  const [mfaCode, setMfaCode] = useState('');
-  const [resendTimer, setResendTimer] = useState(30);
-  const [canResend, setCanResend] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState('');
-
-  // Resend countdown timer
-  useEffect(() => {
-    let timer;
-    if (mfaRequired && resendTimer > 0) {
-      timer = setTimeout(() => setResendTimer(t => t - 1), 1000);
-    } else if (resendTimer === 0) {
-      setCanResend(true);
-    }
-    return () => clearTimeout(timer);
-  }, [mfaRequired, resendTimer]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    setResendSuccess('');
     setLoading(true);
     try {
-      if (mfaRequired) {
-        await loginMFA(email, mfaCode);
-        navigate('/');
-      } else {
-        const res = await login(email, password);
-        if (res && res.mfaRequired) {
-          setMfaRequired(true);
-          setMfaType(res.mfaType || 'phone');
-          setMaskedTarget(res.maskedTarget || '');
-          if (res.devOtp) setDevOtp(res.devOtp);
-          setResendTimer(30);
-          setCanResend(false);
-        } else {
-          navigate('/');
-        }
-      }
+      await login(email, password);
+      navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Authentication failure. Check credentials and retry.');
+      setError(err.response?.data?.error || 'Authentication failure. Please verify your credentials and retry.');
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleResend() {
-    if (!canResend) return;
-    setError('');
-    setResendSuccess('');
-    try {
-      const { data } = await client.post('/auth/login', { email, password });
-      if (data && data.devOtp) {
-        setDevOtp(data.devOtp);
-      }
-      setResendSuccess('New security OTP has been dispatched.');
-      setResendTimer(30);
-      setCanResend(false);
-    } catch (err) {
-      setError('Unable to resend OTP at this time. Please retry shortly.');
     }
   }
 
@@ -98,205 +45,91 @@ export default function Login() {
               </svg>
             </span>
             <span className="brand-name" style={{ fontSize: '20px', letterSpacing: '0.05em', textShadow: '0 0 8px var(--accent-cyan-dim)' }}>
-              {!mfaRequired 
-                ? 'SECURE COMMAND GATE' 
-                : mfaType === 'phone' 
-                  ? 'MOBILE OTP CLEARANCE' 
-                  : 'EMAIL 2FA CLEARANCE'
-              }
+              SECURE COMMAND GATE
             </span>
           </div>
 
           <p className="auth-subtitle" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '24px' }}>
-            {!mfaRequired
-              ? 'Verify credentials to link host session'
-              : mfaType === 'phone'
-                ? `6-Digit verification code dispatched via SMS to ${maskedTarget || 'registered mobile'}`
-                : `6-Digit verification code dispatched to ${maskedTarget || 'email'}`
-            }
+            Enter operator credentials to link host session
           </p>
 
           <form onSubmit={handleSubmit} className="auth-form">
-            {!mfaRequired ? (
-              <>
-                <label>
-                  OPERATOR ID (EMAIL)
-                  <input 
-                    type="email" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                    placeholder="analyst@sentinel.local" 
-                  />
-                </label>
-                <label>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>ACCESS PASSCODE</span>
-                    <Link 
-                      to="/forgot-password" 
-                      style={{ 
-                        fontSize: '11px', 
-                        color: 'var(--accent-cyan)', 
-                        textDecoration: 'none',
-                        fontFamily: 'Space Grotesk, sans-serif'
-                      }}
-                    >
-                      Forgot passcode?
-                    </Link>
-                  </div>
-                  <input 
-                    type="password" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                    placeholder="••••••••" 
-                    style={{ marginTop: '6px' }} 
-                  />
-                </label>
-              </>
-            ) : (
-              <>
-                <div style={{
-                  background: 'rgba(0, 212, 255, 0.06)',
-                  border: '1px solid rgba(0, 212, 255, 0.25)',
-                  borderRadius: '6px',
-                  padding: '12px 14px',
-                  marginBottom: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                  <span style={{ fontSize: '24px' }}>{mfaType === 'phone' ? '📱' : '✉️'}</span>
-                  <div style={{ fontSize: '11px', lineHeight: 1.45 }}>
-                    <div style={{ color: 'var(--accent-cyan)', fontWeight: 700, fontFamily: 'Space Grotesk', letterSpacing: '0.04em' }}>
-                      {mfaType === 'phone' ? 'SECURITY OTP TRANSMITTED' : '2FA SECURITY CODE TRANSMITTED'}
-                    </div>
-                    <div style={{ color: 'var(--text-dim)' }}>
-                      Enter the 6-digit single-use authorization code sent to <strong>{maskedTarget || (mfaType === 'phone' ? 'your mobile' : 'your email')}</strong>.
-                    </div>
-                  </div>
-                </div>
+            <label>
+              OPERATOR ID (EMAIL)
+              <input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+                placeholder="analyst@sentinel.local" 
+                autoComplete="email"
+                autoFocus
+              />
+            </label>
 
-                {/* Development / Simulation Mode OTP Helper */}
-                <div style={{
-                  background: 'rgba(0, 255, 136, 0.07)',
-                  border: '1px solid rgba(0, 255, 136, 0.28)',
-                  borderRadius: '6px',
-                  padding: '10px 12px',
-                  marginBottom: '14px',
-                  fontSize: '11px',
-                  fontFamily: 'Space Grotesk, sans-serif'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ color: 'var(--accent-green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>⚡</span> DEMO MODE / SIMULATION CLEARANCE
-                    </span>
-                    <span style={{ color: 'var(--text-faint)', fontSize: '10px' }}>Instant Access</span>
-                  </div>
-                  <div style={{ color: 'var(--text-dim)', marginBottom: '8px', lineHeight: 1.4 }}>
-                    Live SMS/SMTP gateway not configured on demo host. Use the verified master demo key below:
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {devOtp && (
-                      <button
-                        type="button"
-                        onClick={() => setMfaCode(devOtp)}
-                        style={{
-                          background: 'rgba(0, 212, 255, 0.15)',
-                          border: '1px solid var(--accent-cyan)',
-                          color: 'var(--accent-cyan)',
-                          fontFamily: 'JetBrains Mono, monospace',
-                          fontWeight: 700,
-                          fontSize: '12px',
-                          padding: '4px 10px',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Autofill: {devOtp}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setMfaCode('123456')}
-                      style={{
-                        background: 'rgba(0, 255, 136, 0.15)',
-                        border: '1px solid var(--accent-green)',
-                        color: 'var(--accent-green)',
-                        fontFamily: 'JetBrains Mono, monospace',
-                        fontWeight: 700,
-                        fontSize: '12px',
-                        padding: '4px 10px',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Use Dev Bypass: 123456
-                    </button>
-                  </div>
-                </div>
-
-                <label>
-                  ENTER 6-DIGIT OTP
-                  <input 
-                    type="text" 
-                    value={mfaCode} 
-                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))} 
-                    required 
-                    maxLength={6}
-                    pattern="[0-9]*"
-                    style={{ letterSpacing: '0.35em', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: '20px', fontWeight: 700, padding: '12px' }}
-                    placeholder="000000"
-                    autoFocus
-                  />
-                </label>
-
-                {resendSuccess && (
-                  <div style={{ color: 'var(--accent-green)', fontSize: '11px', marginBottom: '10px', fontFamily: 'Space Grotesk' }}>
-                    ✓ {resendSuccess}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', fontSize: '11px', fontFamily: 'Space Grotesk' }}>
-                  <span style={{ color: 'var(--text-dim)' }}>Didn't receive code?</span>
-                  {canResend ? (
-                    <button
-                      type="button"
-                      onClick={handleResend}
-                      style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}
-                    >
-                      Resend OTP Now
-                    </button>
-                  ) : (
-                    <span style={{ color: 'var(--text-faint)' }}>
-                      Resend in {resendTimer}s
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
+            <label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>ACCESS PASSCODE</span>
+                <Link 
+                  to="/forgot-password" 
+                  style={{ 
+                    fontSize: '11px', 
+                    color: 'var(--accent-cyan)', 
+                    textDecoration: 'none',
+                    fontFamily: 'Space Grotesk, sans-serif'
+                  }}
+                >
+                  Forgot passcode?
+                </Link>
+              </div>
+              <div style={{ position: 'relative', marginTop: '6px' }}>
+                <input 
+                  type={showPassword ? 'text' : 'password'} 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  placeholder="••••••••" 
+                  autoComplete="current-password"
+                  style={{ paddingRight: '42px', marginTop: 0 }} 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-faint)',
+                    fontSize: '14px',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+            </label>
 
             {error && <div className="form-error">{error}</div>}
 
             <button 
               type="submit" 
               className="btn-primary" 
-              disabled={loading || (mfaRequired && mfaCode.length < 6)} 
-              style={{ padding: '12px', fontSize: '14px', fontWeight: '700', letterSpacing: '0.05em' }}
+              disabled={loading} 
+              style={{ padding: '12px', fontSize: '14px', fontWeight: '700', letterSpacing: '0.05em', marginTop: '8px' }}
             >
-              {loading ? 'AUTHENTICATING...' : mfaRequired ? 'VERIFY OTP & LOGIN' : 'INITIALIZE LOGIN'}
+              {loading ? 'AUTHENTICATING...' : 'INITIALIZE LOGIN'}
             </button>
           </form>
 
-          {!mfaRequired ? (
-            <p className="auth-switch">
-              Deploy new operator card? <Link to="/register">Register account</Link>
-            </p>
-          ) : (
-            <p className="auth-switch">
-              Want to try credentials again? <button type="button" onClick={() => { setMfaRequired(false); setMfaCode(''); setError(''); }} style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}>Back to login</button>
-            </p>
-          )}
+          <p className="auth-switch">
+            Deploy new operator card? <Link to="/register">Register account</Link>
+          </p>
         </div>
       </div>
     </div>

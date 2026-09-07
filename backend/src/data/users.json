@@ -5,14 +5,18 @@
     "passwordHash": "$2a$10$mYVuxfnyPueBqLReQw/J5uengazYhZ/Lj3yU.T7.3.nc7e4LOpDIe",
     "role": "administrator",
     "createdAt": "2026-07-11T19:21:29.038Z",
-    "profilePic": null
+    "profilePic": null,
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "gamma@sentinel.ai": {
     "name": "Operator Gamma",
     "email": "gamma@sentinel.ai",
     "passwordHash": "$2a$12$nRaxwLkORB4JatDzlvLWGO.R2gHO9GwM3HjdsqMzWkBt0a7FgO9I2",
     "role": "analyst",
-    "createdAt": "2026-07-11T19:23:03.400Z"
+    "createdAt": "2026-07-11T19:23:03.400Z",
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "ayushdhiman708@gmail.com": {
     "name": "Ayush Dhiman ",
@@ -21,7 +25,8 @@
     "role": "analyst",
     "createdAt": "2026-07-11T19:25:57.114Z",
     "profilePic": null,
-    "isEmailVerified": true
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "test_operator@sentinel.ai": {
     "name": "Test Operator",
@@ -32,7 +37,7 @@
     "profilePic": null,
     "createdAt": "2026-07-17T05:55:15.093Z",
     "isEmailVerified": true,
-    "isPhoneVerified": false
+    "isPhoneVerified": true
   },
   "testuser@example.com": {
     "name": "testuser",
@@ -42,8 +47,8 @@
     "role": "analyst",
     "profilePic": null,
     "createdAt": "2026-08-30T10:59:10.009Z",
-    "isEmailVerified": false,
-    "isPhoneVerified": false
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "test@test.com": {
     "name": "Test Operator",
@@ -53,8 +58,8 @@
     "role": "analyst",
     "profilePic": null,
     "createdAt": "2026-08-31T15:52:36.826Z",
-    "isEmailVerified": false,
-    "isPhoneVerified": false
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "operator_1788193087879@sentinel.ai": {
     "name": "Alpha Tester",
@@ -64,8 +69,8 @@
     "role": "analyst",
     "profilePic": null,
     "createdAt": "2026-08-31T16:18:08.551Z",
-    "isEmailVerified": false,
-    "isPhoneVerified": false
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "operator_1788193120253@sentinel.ai": {
     "name": "Alpha Tester",
@@ -75,8 +80,8 @@
     "role": "analyst",
     "profilePic": null,
     "createdAt": "2026-08-31T16:18:40.756Z",
-    "isEmailVerified": false,
-    "isPhoneVerified": false
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "operator_1788193217230@sentinel.ai": {
     "name": "Alpha Tester",
@@ -86,8 +91,8 @@
     "role": "analyst",
     "profilePic": null,
     "createdAt": "2026-08-31T16:20:17.771Z",
-    "isEmailVerified": false,
-    "isPhoneVerified": false
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "test_no_mfa@test.com": {
     "name": "Test Operator",
@@ -97,8 +102,8 @@
     "role": "analyst",
     "profilePic": null,
     "createdAt": "2026-08-31T16:46:34.557Z",
-    "isEmailVerified": false,
-    "isPhoneVerified": false
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   },
   "no_otp@test.com": {
     "name": "NoOTP",
@@ -108,7 +113,7 @@
     "role": "analyst",
     "profilePic": null,
     "createdAt": "2026-08-31T17:09:39.911Z",
-    "isEmailVerified": false,
-    "isPhoneVerified": false
+    "isEmailVerified": true,
+    "isPhoneVerified": true
   }
 }
