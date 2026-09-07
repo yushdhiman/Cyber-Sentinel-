@@ -130,7 +130,7 @@ export default function Layout({ children, theme, onToggleTheme }) {
 
   function handleLogout() {
     logout();
-    navigate('/login');
+    navigate('/');
   }
 
   const currentTheme = THEMES.find(t => t.id === theme) || THEMES[0];
@@ -315,31 +315,30 @@ export default function Layout({ children, theme, onToggleTheme }) {
             </div>
           )}
 
-          {/* Disconnect Session Button */}
-          <button
-            onClick={handleLogout}
+          {/* Granted Access Status Indicator */}
+          <div
             style={{
               width: '100%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              background: 'rgba(255, 51, 102, 0.06)',
-              border: '1px solid rgba(255, 51, 102, 0.25)',
+              justifyContent: 'space-between',
+              padding: '9px 12px',
+              background: 'rgba(0, 255, 136, 0.08)',
+              border: '1px solid rgba(0, 255, 136, 0.28)',
               borderRadius: '6px',
-              color: 'var(--accent-red)',
+              color: 'var(--accent-green)',
               fontSize: '11px',
               fontWeight: 700,
               fontFamily: 'Space Grotesk, sans-serif',
-              letterSpacing: '0.04em'
+              letterSpacing: '0.05em'
             }}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            DISCONNECT SESSION
-          </button>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-green)', boxShadow: '0 0 10px var(--accent-green)' }}></span>
+              CLEARANCE: VERIFIED
+            </span>
+            <span style={{ fontSize: '10px', color: 'var(--accent-cyan)', fontFamily: 'Space Grotesk' }}>DIRECT</span>
+          </div>
         </div>
       </aside>
 
