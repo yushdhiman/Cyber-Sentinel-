@@ -1,4 +1,9 @@
-const nodemailer = require('nodemailer');
+let nodemailer;
+try {
+  nodemailer = require('nodemailer');
+} catch (e) {
+  nodemailer = null;
+}
 
 /**
  * Sends an email containing verification code, MFA OTP, or Password Reset link.
@@ -10,7 +15,7 @@ async function sendEmail({ to, subject, body, html }) {
   const smtpPass = process.env.SMTP_PASS;
   const smtpFrom = process.env.SMTP_FROM || smtpUser || 'Cyber Sentinel <no-reply@sentinel.local>';
 
-  if (!smtpHost || !smtpUser || !smtpPass) {
+  if (!smtpHost || !smtpUser || !smtpPass || !nodemailer) {
     console.log(`\n======================================================`);
     console.log(`[SMTP TRANSMISSION DISPATCH]`);
     console.log(`To: ${to}`);

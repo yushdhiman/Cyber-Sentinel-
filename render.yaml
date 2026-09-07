@@ -3,8 +3,8 @@ services:
     name: cyber-sentinel
     env: node
     plan: free
-    buildCommand: npm install && cd frontend && npm install && VITE_API_URL=/api npm run build && cd ../backend && npm install
-    startCommand: cd backend && npm start
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production

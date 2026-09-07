@@ -88,7 +88,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+const candidateDistPaths = [
+  path.resolve(__dirname, '../../frontend/dist'),
+  path.resolve(__dirname, '../../dist'),
+  path.resolve(__dirname, '../dist'),
+  path.resolve(process.cwd(), 'frontend/dist'),
+  path.resolve(process.cwd(), 'dist')
+];
+const frontendDistPath = candidateDistPaths.find(p => fs.existsSync(p)) || candidateDistPaths[0];
 if (fs.existsSync(frontendDistPath)) {
   console.log(`[Server] Serving static frontend from: ${frontendDistPath}`);
   app.use(express.static(frontendDistPath));
