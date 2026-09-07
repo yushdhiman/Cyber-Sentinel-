@@ -804,7 +804,7 @@ export default function Profile() {
               </label>
             </div>
 
-            <div className="form-section-title">⬡ Security Verification</div>
+            <div className="form-section-title">⬡ Passcode Confirmation</div>
             <div style={{ marginBottom: '24px' }}>
               <label className="profile-input-label" style={{ maxWidth: '350px' }}>
                 Current Passcode

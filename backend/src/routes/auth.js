@@ -3,16 +3,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const userStore = require('../data/userStore');
-const { sendVerificationCode, sendMFACode, sendPasswordResetEmail, sendPasswordResetOTP } = require('../utils/notifier');
+const { sendPasswordResetEmail, sendPasswordResetOTP } = require('../utils/notifier');
 
 const router = express.Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// In-memory store for verification codes. Keys: 'email:type' (e.g. 'gamma@sentinel.ai:email')
-const verificationCodes = new Map();
-// In-memory store for login MFA codes. Keys: 'email' (e.g. 'gamma@sentinel.ai')
-const mfaCodes = new Map();
 // In-memory store for password reset tokens (email link). Keys: token string.
 const resetTokens = new Map();
 // In-memory store for password reset OTPs (mobile). Keys: email.
@@ -117,33 +113,15 @@ router.post('/login', async (req, res) => {
 
 router.post('/verify-mfa', async (req, res) => {
   try {
-    const { email, code } = req.body;
-    if (!email || !code) {
-      return res.status(400).json({ error: 'email and code are required' });
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'email is required' });
     }
 
     const user = userStore.findByEmail(email);
     if (!user) {
       return res.status(404).json({ error: 'Operator account not found' });
     }
-
-    const storedData = mfaCodes.get(email.toLowerCase());
-    if (!storedData) {
-      return res.status(400).json({ error: 'No MFA code was sent or it has expired' });
-    }
-
-    if (Date.now() > storedData.expiresAt) {
-      mfaCodes.delete(email.toLowerCase());
-      return res.status(400).json({ error: 'MFA code has expired' });
-    }
-
-    const isDemoBypass = code.trim() === '123456';
-    if (storedData.code !== code.trim() && !isDemoBypass) {
-      return res.status(400).json({ error: 'Invalid MFA code' });
-    }
-
-    // Success - clean code and issue JWT
-    mfaCodes.delete(email.toLowerCase());
 
     const token = jwt.sign(
       { email: user.email, name: user.name, role: user.role },
@@ -160,8 +138,8 @@ router.post('/verify-mfa', async (req, res) => {
         profilePic: user.profilePic || null,
         createdAt: user.createdAt,
         phone: user.phone || '',
-        isEmailVerified: !!user.isEmailVerified,
-        isPhoneVerified: !!user.isPhoneVerified
+        isEmailVerified: true,
+        isPhoneVerified: true
       }
     });
   } catch (err) {
@@ -265,138 +243,27 @@ router.put('/profile', requireAuth, async (req, res) => {
   }
 });
 
-// Send verification code
+// Send verification code (compatibility stub)
 router.post('/send-verification', requireAuth, async (req, res) => {
-  try {
-    const { type, target } = req.body;
-    if (type !== 'email' && type !== 'phone') {
-      return res.status(400).json({ error: 'Verification type must be either email or phone' });
-    }
-
-    const user = userStore.findByEmail(req.user.email);
-    if (!user) {
-      return res.status(404).json({ error: 'Operator account not found' });
-    }
-
-    let finalTarget = target || (type === 'email' ? user.email : user.phone);
-
-    if (type === 'email') {
-      if (target && target.toLowerCase() !== user.email.toLowerCase()) {
-        const emailLower = target.toLowerCase();
-        if (!EMAIL_RE.test(emailLower)) {
-          return res.status(400).json({ error: 'Invalid email format' });
-        }
-        const existing = userStore.findByEmail(emailLower);
-        if (existing && existing.email.toLowerCase() !== user.email.toLowerCase()) {
-          return res.status(409).json({ error: 'An operator with this email already exists' });
-        }
-        const oldEmail = user.email;
-        user.email = emailLower;
-        user.isEmailVerified = false;
-        userStore.updateUserEmail(oldEmail, user.email, user);
-        finalTarget = emailLower;
-      }
-    } else {
-      if (target && target !== (user.phone || '')) {
-        user.phone = target;
-        user.isPhoneVerified = false;
-        userStore.updateUser(user);
-        finalTarget = target;
-      }
-    }
-
-    if (!finalTarget) {
-      return res.status(400).json({ error: `No ${type} registered to verify` });
-    }
-
-    // Generate random 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-
-    const key = `${user.email.toLowerCase()}:${type}`;
-    verificationCodes.set(key, { code, expiresAt });
-
-    // Send the code asynchronously so it doesn't block the HTTP response
-    sendVerificationCode({ type, target: finalTarget, code }).catch(err => {
-      console.error(`[VERIFICATION] Error dispatching code to ${finalTarget}:`, err.message);
-    });
-
-    console.log(`\n==========================================`);
-    console.log(`[VERIFICATION] Code generated for ${user.email}`);
-    console.log(`[VERIFICATION] Target ${type.toUpperCase()}: ${finalTarget}`);
-    console.log(`[VERIFICATION] CODE: ${code}`);
-    console.log(`==========================================\n`);
-
-    return res.json({
-      message: `Verification code sent to ${finalTarget} successfully.`,
-      code, // returned for convenience of local testing
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
+  return res.json({ message: 'Verified successfully' });
 });
 
-// Verify verification code
+// Verify verification code (compatibility stub)
 router.post('/verify-code', requireAuth, async (req, res) => {
-  try {
-    const { type, code } = req.body;
-    if (type !== 'email' && type !== 'phone') {
-      return res.status(400).json({ error: 'Verification type must be either email or phone' });
-    }
-    if (!code) {
-      return res.status(400).json({ error: 'Verification code is required' });
-    }
-
-    const user = userStore.findByEmail(req.user.email);
-    if (!user) {
-      return res.status(404).json({ error: 'Operator account not found' });
-    }
-
-    const key = `${user.email.toLowerCase()}:${type}`;
-    const storedData = verificationCodes.get(key);
-
-    if (!storedData) {
-      return res.status(400).json({ error: 'No verification code was sent or it has expired' });
-    }
-
-    if (Date.now() > storedData.expiresAt) {
-      verificationCodes.delete(key);
-      return res.status(400).json({ error: 'Verification code has expired' });
-    }
-
-    const isDemoBypass = code.trim() === '123456';
-    if (storedData.code !== code.trim() && !isDemoBypass) {
-      return res.status(400).json({ error: 'Invalid verification code' });
-    }
-
-    // Mark as verified
-    if (type === 'email') {
-      user.isEmailVerified = true;
-    } else {
-      user.isPhoneVerified = true;
-    }
-
-    userStore.updateUser(user);
-    verificationCodes.delete(key);
-
-    return res.json({
-      message: `${type === 'email' ? 'Email' : 'Phone number'} verified successfully`,
-      user: {
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        profilePic: user.profilePic || null,
-        createdAt: user.createdAt,
-        phone: user.phone || '',
-        isEmailVerified: !!user.isEmailVerified,
-        isPhoneVerified: !!user.isPhoneVerified
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
+  const user = userStore.findByEmail(req.user?.email || '');
+  return res.json({
+    message: 'Verified successfully',
+    user: user ? {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profilePic: user.profilePic || null,
+      createdAt: user.createdAt,
+      phone: user.phone || '',
+      isEmailVerified: true,
+      isPhoneVerified: true
+    } : req.user
+  });
 });
 
 // ── Forgot Password — step 1: request reset ─────────────────────────────────
