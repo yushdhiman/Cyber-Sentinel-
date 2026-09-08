@@ -10,64 +10,102 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'rgba(10, 18, 36, 0.95)',
-      backdropFilter: 'blur(12px)',
-      border: '1px solid var(--accent-cyan)',
-      borderRadius: '8px',
-      padding: '10px 14px',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.6), 0 0 12px rgba(0,212,255,0.2)',
+      background: 'rgba(3,7,18,0.97)',
+      backdropFilter: 'blur(16px)',
+      border: '1px solid rgba(0,212,255,0.35)',
+      borderRadius: '10px',
+      padding: '12px 16px',
+      boxShadow: '0 12px 32px rgba(0,0,0,0.7), 0 0 20px rgba(0,212,255,0.15)',
       fontFamily: 'Space Grotesk, monospace',
-      fontSize: '11px'
+      fontSize: '11px',
+      minWidth: 140,
     }}>
-      <div style={{ color: 'var(--text-faint)', marginBottom: '4px', fontWeight: 700 }}>{label}</div>
+      <div style={{ color: 'var(--accent-cyan)', marginBottom: '6px', fontWeight: 800, fontSize: 10, letterSpacing: '0.1em' }}>{label}</div>
       {payload.map((item, idx) => (
-        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '2px 0' }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: item.stroke || item.fill || 'var(--accent-cyan)' }} />
+        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '3px 0' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.stroke || item.fill, boxShadow: `0 0 6px ${item.stroke || item.fill}` }} />
           <span style={{ color: 'var(--text-dim)' }}>{item.name === 'attacks' ? 'Attacks' : 'Blocked'}:</span>
-          <strong style={{ color: 'var(--text)' }}>{item.value}</strong>
+          <strong style={{ color: 'var(--text)', fontFamily: 'JetBrains Mono' }}>{item.value}</strong>
         </div>
       ))}
     </div>
   );
 };
 
-/* ── Interactive Threat Gauge Ring ── */
+/* ── Threat Gauge Ring ── */
 function ThreatGauge({ score, riskLevel }) {
-  const color = score >= 70 ? 'var(--accent-red)' : score >= 40 ? 'var(--accent-orange)' : score >= 20 ? '#f0c040' : 'var(--accent-green)';
-  const r = 54, circ = 2 * Math.PI * r;
+  const color = score >= 70 ? '#ff3366' : score >= 40 ? '#ff9900' : score >= 20 ? '#f0c040' : '#00ff88';
+  const r = 50, circ = 2 * Math.PI * r;
   const dash = circ * (score / 100), gap = circ - dash;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      <svg width="130" height="130" viewBox="0 0 140 140">
-        <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
-        <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeWidth="10"
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width="118" height="118" viewBox="0 0 128 128">
+        <circle cx="64" cy="64" r={r + 5} fill="none" stroke={color} strokeWidth="1" opacity="0.1" />
+        <circle cx="64" cy="64" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+        <circle cx="64" cy="64" r={r} fill="none" stroke={color} strokeWidth="10"
           strokeDasharray={`${dash} ${gap}`} strokeDashoffset={circ / 4} strokeLinecap="round"
-          style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.4,0,0.2,1)', filter: `drop-shadow(0 0 8px ${color}80)` }} />
-        <text x="70" y="62" textAnchor="middle" fill="var(--text)" fontSize="26" fontWeight="800" fontFamily="Outfit">{score}</text>
-        <text x="70" y="80" textAnchor="middle" fill="var(--text-faint)" fontSize="10" fontFamily="Space Grotesk">/100</text>
-        <text x="70" y="96" textAnchor="middle" fill={color} fontSize="9" fontWeight="800" fontFamily="Space Grotesk" letterSpacing="1">{riskLevel}</text>
+          style={{ transition: 'stroke-dasharray 1.4s cubic-bezier(0.4,0,0.2,1)', filter: `drop-shadow(0 0 12px ${color}90)` }} />
+        <text x="64" y="57" textAnchor="middle" fill="white" fontSize="26" fontWeight="800" fontFamily="Outfit">{score}</text>
+        <text x="64" y="71" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="10" fontFamily="Space Grotesk">/100</text>
+        <text x="64" y="85" textAnchor="middle" fill={color} fontSize="8.5" fontWeight="800" fontFamily="Space Grotesk" letterSpacing="1.5">{riskLevel}</text>
       </svg>
+      {score > 60 && (
+        <div style={{ position: 'absolute', width: 118, height: 118, borderRadius: '50%', border: `1px solid ${color}`, animation: 'pingOut 2s ease-in-out infinite', pointerEvents: 'none' }} />
+      )}
+      <style>{`@keyframes pingOut { 0%{transform:scale(1);opacity:.6} 100%{transform:scale(1.3);opacity:0} }`}</style>
     </div>
   );
 }
 
-/* ── Live Sparkline ── */
-function MiniSparkline({ data, color = 'var(--accent-cyan)' }) {
+/* ── Live Sparkline with area fill ── */
+function MiniSparkline({ data, color = '#00d4ff', height = 34 }) {
   if (!data || data.length < 2) return null;
   const max = Math.max(...data, 1);
   const min = Math.min(...data, 0);
   const range = max - min || 1;
-  const w = 90, h = 32;
+  const w = 92;
   const pts = data.map((v, i) => {
     const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 6) - 3;
+    const y = height - ((v - min) / range) * (height - 8) - 4;
     return `${x},${y}`;
-  }).join(' ');
+  });
+  const pStr = pts.map(p => p).join(' ');
+  const [lx, ly] = pts[pts.length - 1].split(',');
+  const [fx] = pts[0].split(',');
+  const areaD = `M${fx},${height} L${pts.join(' L')} L${lx},${height} Z`;
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: 'visible' }}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 6px ${color})` }} />
+    <svg width={w} height={height} viewBox={`0 0 ${w} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={`spk-${color.replace(/[^a-z0-9]/gi,'')}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={areaD} fill={`url(#spk-${color.replace(/[^a-z0-9]/gi,'')})`} />
+      <polyline points={pStr} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 6px ${color}80)` }} />
+      <circle cx={lx} cy={ly} r="4" fill={color} style={{ filter: `drop-shadow(0 0 8px ${color})` }} />
     </svg>
   );
+}
+
+/* ── Animated Counter ── */
+function AnimCounter({ value, duration = 900 }) {
+  const [display, setDisplay] = useState(0);
+  const raf = useRef(null);
+  useEffect(() => {
+    const start = performance.now();
+    const from = display;
+    const step = () => {
+      const elapsed = performance.now() - start;
+      const p = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(from + (value - from) * ease));
+      if (p < 1) raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf.current);
+  }, [value]);
+  return <>{display}</>;
 }
 
 /* ── Live Interactive Threat Radar Component ── */
@@ -673,96 +711,110 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Modern Cyber KPI 4-Card Grid */}
-      <div className="cyber-kpi-grid">
-        {/* Card 1: Live Threat Index */}
-        <div className="cyber-kpi-card">
-          <div className="cyber-kpi-header">
-            <span className="cyber-kpi-title">THREAT SCORE</span>
-            <div className="cyber-kpi-icon">⚠️</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="cyber-kpi-body" style={{ flexDirection: 'column', alignItems: 'flex-start', margin: 0 }}>
-              <div className="cyber-kpi-value" style={{ color: systemMetrics?.threatScore > 60 ? 'var(--accent-red)' : systemMetrics?.threatScore > 30 ? 'var(--accent-orange)' : 'var(--accent-green)' }}>
-                {systemMetrics?.threatScore || 18}<span style={{ fontSize: '16px', color: 'var(--text-faint)' }}>/100</span>
+      {/* ── KPI 4-Card Grid ─────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+
+        {/* Card 1: Threat Score */}
+        {(() => {
+          const ts = systemMetrics?.threatScore || 18;
+          const tc = ts >= 70 ? '#ff3366' : ts >= 40 ? '#ff9900' : ts >= 20 ? '#f0c040' : '#00ff88';
+          return (
+            <div style={{ position: 'relative', background: 'linear-gradient(135deg, rgba(10,18,36,0.92), rgba(13,22,41,0.72))', border: `1px solid ${tc}28`, borderRadius: 16, padding: 20, overflow: 'hidden', boxShadow: `0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 ${tc}15`, transition: 'transform 0.2s, box-shadow 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 16px 48px rgba(0,0,0,0.6), 0 0 24px ${tc}18`; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 ${tc}15`; }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${tc}, transparent)`, opacity: 0.7 }} />
+              <div style={{ position: 'absolute', top: -40, right: -40, width: 100, height: 100, borderRadius: '50%', background: tc, opacity: 0.06 }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ fontSize: 9, fontFamily: 'Space Grotesk', fontWeight: 800, color: 'var(--text-faint)', letterSpacing: '0.14em' }}>THREAT SCORE</div>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${tc}15`, border: `1px solid ${tc}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>⚠️</div>
               </div>
-              <span className={`cyber-kpi-trend ${systemMetrics?.threatScore > 50 ? 'negative' : 'positive'}`} style={{ marginTop: '6px' }}>
-                {systemMetrics?.threatScore > 50 ? '▲ ELEVATED RISK' : '▼ STABLE SECURITY'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 42, fontWeight: 800, fontFamily: 'Outfit', color: tc, lineHeight: 1, textShadow: `0 0 24px ${tc}50` }}>
+                  <AnimCounter value={ts} /><span style={{ fontSize: 15, color: 'rgba(255,255,255,0.2)', fontWeight: 400 }}>/100</span>
+                </div>
+                <ThreatGauge score={ts} riskLevel={systemMetrics?.riskLevel || 'LOW'} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: `1px solid ${tc}18`, marginTop: 8 }}>
+                <span style={{ fontSize: 10, fontFamily: 'Space Grotesk', fontWeight: 700, color: ts > 50 ? '#ff3366' : '#00ff88' }}>{ts > 50 ? '▲ ELEVATED RISK' : '▼ STABLE'}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'Space Grotesk' }}>{systemFindings?.length || 0} findings</span>
+              </div>
             </div>
-            <ThreatGauge score={systemMetrics?.threatScore || 18} riskLevel={systemMetrics?.riskLevel || 'LOW'} />
+          );
+        })()}
+
+        {/* Card 2: Attacks */}
+        <div style={{ position: 'relative', background: 'linear-gradient(135deg, rgba(10,18,36,0.92), rgba(13,22,41,0.72))', border: '1px solid rgba(255,51,102,0.2)', borderRadius: 16, padding: 20, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 48px rgba(0,0,0,0.6), 0 0 24px rgba(255,51,102,0.12)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'; }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #ff3366, transparent)', opacity: 0.7 }} />
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 100, height: 100, borderRadius: '50%', background: '#ff3366', opacity: 0.06 }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <div style={{ fontSize: 9, fontFamily: 'Space Grotesk', fontWeight: 800, color: 'var(--text-faint)', letterSpacing: '0.14em' }}>TOTAL ATTACKS (24H)</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,51,102,0.15)', border: '1px solid rgba(255,51,102,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>🔴</div>
           </div>
-          <div className="cyber-kpi-footer">
-            <span>Risk Level: <strong>{systemMetrics?.riskLevel || 'LOW'}</strong></span>
-            <span>{systemFindings?.length || 0} active findings</span>
+          <div style={{ fontSize: 42, fontWeight: 800, fontFamily: 'Outfit', color: '#ff3366', lineHeight: 1, marginBottom: 8, textShadow: '0 0 24px #ff336650' }}>
+            <AnimCounter value={liveAttackCount || 0} />
+          </div>
+          <MiniSparkline data={[2,4,3,7,5,8,12,6,attacksPerMinute||9]} color="#ff3366" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid rgba(255,51,102,0.15)', marginTop: 8 }}>
+            <span style={{ fontSize: 10, fontFamily: 'Space Grotesk', fontWeight: 700, color: '#ff3366' }}>▲ {attacksPerMinute || 0} attacks/min</span>
+            <span style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'Space Grotesk' }}>Live Feed</span>
           </div>
         </div>
 
-        {/* Card 2: 24h Attack Volume */}
-        <div className="cyber-kpi-card">
-          <div className="cyber-kpi-header">
-            <span className="cyber-kpi-title">TOTAL ATTACKS (24H)</span>
-            <div className="cyber-kpi-icon" style={{ background: 'rgba(255, 51, 102, 0.12)', borderColor: 'rgba(255, 51, 102, 0.3)', color: 'var(--accent-red)' }}>🔴</div>
+        {/* Card 3: Mitigated */}
+        <div style={{ position: 'relative', background: 'linear-gradient(135deg, rgba(10,18,36,0.92), rgba(13,22,41,0.72))', border: '1px solid rgba(0,255,136,0.2)', borderRadius: 16, padding: 20, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 48px rgba(0,0,0,0.6), 0 0 24px rgba(0,255,136,0.1)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'; }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #00ff88, transparent)', opacity: 0.7 }} />
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 100, height: 100, borderRadius: '50%', background: '#00ff88', opacity: 0.05 }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <div style={{ fontSize: 9, fontFamily: 'Space Grotesk', fontWeight: 800, color: 'var(--text-faint)', letterSpacing: '0.14em' }}>THREATS MITIGATED</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,255,136,0.12)', border: '1px solid rgba(0,255,136,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>🛡️</div>
           </div>
-          <div className="cyber-kpi-body">
-            <div className="cyber-kpi-value" style={{ color: 'var(--accent-red)' }}>
-              {liveAttackCount || 0}
-            </div>
-            <MiniSparkline data={[2, 4, 3, 7, 5, 8, 12, 6, attacksPerMinute || 9]} color="var(--accent-red)" />
+          <div style={{ fontSize: 42, fontWeight: 800, fontFamily: 'Outfit', color: '#00ff88', lineHeight: 1, marginBottom: 8, textShadow: '0 0 24px #00ff8850' }}>
+            <AnimCounter value={blockedCount || 0} />
           </div>
-          <div className="cyber-kpi-footer">
-            <span>Velocity: <strong>{attacksPerMinute || 0} /min</strong></span>
-            <span style={{ color: 'var(--accent-red)' }}>▲ Live Feed</span>
-          </div>
-        </div>
-
-        {/* Card 3: Mitigations Blocked */}
-        <div className="cyber-kpi-card">
-          <div className="cyber-kpi-header">
-            <span className="cyber-kpi-title">MITIGATIONS BLOCKED</span>
-            <div className="cyber-kpi-icon" style={{ background: 'rgba(0, 255, 136, 0.12)', borderColor: 'rgba(0, 255, 136, 0.3)', color: 'var(--accent-green)' }}>🛡️</div>
-          </div>
-          <div className="cyber-kpi-body">
-            <div className="cyber-kpi-value" style={{ color: 'var(--accent-green)' }}>
-              {blockedCount || 0}
-            </div>
-            <MiniSparkline data={[1, 3, 4, 5, 8, 10, 14, 18, blockedCount || 20]} color="var(--accent-green)" />
-          </div>
-          <div className="cyber-kpi-footer">
-            <span>Defense Efficiency: <strong>99.4%</strong></span>
-            <span style={{ color: 'var(--accent-green)' }}>✓ Zero-Trust</span>
+          <MiniSparkline data={[1,3,4,5,8,10,14,18,blockedCount||20]} color="#00ff88" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid rgba(0,255,136,0.15)', marginTop: 8 }}>
+            <span style={{ fontSize: 10, fontFamily: 'Space Grotesk', fontWeight: 700, color: '#00ff88' }}>✓ Zero-Trust Active</span>
+            <span style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'Space Grotesk' }}>99.4% block rate</span>
           </div>
         </div>
 
-        {/* Card 4: Local System Health */}
-        <div className="cyber-kpi-card">
-          <div className="cyber-kpi-header">
-            <span className="cyber-kpi-title">HOST SYSTEM HEALTH</span>
-            <div className="cyber-kpi-icon">🖥️</div>
+        {/* Card 4: System Health */}
+        <div style={{ position: 'relative', background: 'linear-gradient(135deg, rgba(10,18,36,0.92), rgba(13,22,41,0.72))', border: '1px solid rgba(179,102,255,0.2)', borderRadius: 16, padding: 20, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', transition: 'transform 0.2s, box-shadow 0.2s' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 48px rgba(0,0,0,0.6), 0 0 24px rgba(179,102,255,0.1)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)'; }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #b366ff, transparent)', opacity: 0.7 }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <div style={{ fontSize: 9, fontFamily: 'Space Grotesk', fontWeight: 800, color: 'var(--text-faint)', letterSpacing: '0.14em' }}>HOST SYSTEM HEALTH</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(179,102,255,0.12)', border: '1px solid rgba(179,102,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>🖥️</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontFamily: 'Space Grotesk', marginBottom: '3px' }}>
-                <span style={{ color: 'var(--text-dim)' }}>CPU Load</span>
-                <strong style={{ color: 'var(--accent-cyan)' }}>{systemMetrics?.cpuUsage || 24}%</strong>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10 }}>
+            {[
+              { label: 'CPU', val: systemMetrics?.cpuUsage || 24, color: 'var(--accent-cyan)' },
+              { label: 'RAM', val: systemMetrics?.memoryUsage || 48, color: '#b366ff' },
+              { label: 'DISK', val: systemMetrics?.diskUsage || 62, color: '#f0c040' },
+            ].map(({ label, val, color }) => (
+              <div key={label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontFamily: 'Space Grotesk', marginBottom: 4 }}>
+                  <span style={{ color: 'var(--text-faint)' }}>{label}</span>
+                  <strong style={{ color, fontFamily: 'JetBrains Mono', fontSize: 11 }}>{val}%</strong>
+                </div>
+                <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ width: `${val}%`, height: '100%', background: `linear-gradient(90deg, ${color}80, ${color})`, borderRadius: 4, transition: 'width 0.6s ease', boxShadow: `0 0 6px ${color}60` }} />
+                </div>
               </div>
-              <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ width: `${systemMetrics?.cpuUsage || 24}%`, height: '100%', background: 'var(--accent-cyan)', transition: 'width 0.4s ease' }} />
-              </div>
-            </div>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontFamily: 'Space Grotesk', marginBottom: '3px' }}>
-                <span style={{ color: 'var(--text-dim)' }}>RAM Usage</span>
-                <strong style={{ color: 'var(--accent-purple)' }}>{systemMetrics?.memoryUsage || 48}%</strong>
-              </div>
-              <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ width: `${systemMetrics?.memoryUsage || 48}%`, height: '100%', background: 'var(--accent-purple)', transition: 'width 0.4s ease' }} />
-              </div>
-            </div>
+            ))}
           </div>
-          <div className="cyber-kpi-footer">
-            <span>Host: <strong>{systemMetrics?.hostname || 'LOCAL-NODE'}</strong></span>
-            <span>Uptime: <strong>{systemMetrics?.uptimeDays ? `${systemMetrics.uptimeDays}d` : '1d'}</strong></span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid rgba(179,102,255,0.15)', fontSize: 10, color: 'var(--text-faint)', fontFamily: 'Space Grotesk' }}>
+            <span>{systemMetrics?.hostname || 'LOCAL-NODE'}</span>
+            <span>Uptime: {systemMetrics?.uptimeDays ? `${systemMetrics.uptimeDays}d` : '1d'}</span>
           </div>
         </div>
       </div>
@@ -836,312 +888,201 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Right: 24h Attack Velocity Timeline Area Chart */}
-        <div style={{
-          background: 'var(--surface-glass)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          padding: '20px',
-          boxShadow: 'var(--shadow)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'Outfit', letterSpacing: '0.04em', color: 'var(--text)' }}>
-                ATTACK VELOCITY &amp; MITIGATION TIMELINE
+        {/* Right: Timeline + Micro Stats */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Area Chart */}
+          <div style={{ flex: 1, background: 'linear-gradient(135deg, rgba(10,18,36,0.92), rgba(13,22,41,0.72))', backdropFilter: 'blur(16px)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--accent-cyan), transparent)', opacity: 0.5 }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'Outfit', letterSpacing: '0.04em', color: 'var(--text)' }}>ATTACK VELOCITY &amp; MITIGATION</div>
+                <div style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'Space Grotesk' }}>24-HOUR INCIDENT DENSITY TREND</div>
               </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk' }}>
-                24-HOUR INCIDENT DENSITY TREND
+              <div style={{ display: 'flex', gap: 12, fontSize: 10, fontFamily: 'Space Grotesk', fontWeight: 700 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#ff3366' }}>
+                  <span style={{ width: 10, height: 3, background: '#ff3366', borderRadius: 2, boxShadow: '0 0 6px #ff336680' }} /> Attacks
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#00ff88' }}>
+                  <span style={{ width: 10, height: 3, background: '#00ff88', borderRadius: 2, boxShadow: '0 0 6px #00ff8880' }} /> Mitigated
+                </span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px', fontSize: '10px', fontFamily: 'Space Grotesk', fontWeight: 700 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--accent-red)' }}>
-                <span style={{ width: 8, height: 8, background: 'var(--accent-red)', borderRadius: '2px' }} /> Attacks
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--accent-green)' }}>
-                <span style={{ width: 8, height: 8, background: 'var(--accent-green)', borderRadius: '2px' }} /> Mitigated
-              </span>
+            <div style={{ flex: 1, minHeight: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="attackGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ff3366" stopOpacity={0.45} />
+                      <stop offset="95%" stopColor="#ff3366" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="blockedGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00ff88" stopOpacity={0.45} />
+                      <stop offset="95%" stopColor="#00ff88" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <XAxis dataKey="hour" stroke="var(--text-faint)" fontSize={9} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-faint)" fontSize={9} tickLine={false} axisLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="attacks" name="attacks" stroke="#ff3366" strokeWidth={2.5} fillOpacity={1} fill="url(#attackGrad)" dot={false} activeDot={{ r: 5, fill: '#ff3366', strokeWidth: 0 }} />
+                  <Area type="monotone" dataKey="blocked" name="blocked" stroke="#00ff88" strokeWidth={2.5} fillOpacity={1} fill="url(#blockedGrad)" dot={false} activeDot={{ r: 5, fill: '#00ff88', strokeWidth: 0 }} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
-
-          <div style={{ flex: 1, minHeight: '220px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="attackGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-red)" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="var(--accent-red)" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="blockedGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-green)" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="var(--accent-green)" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="hour" stroke="var(--text-faint)" fontSize={10} tickLine={false} />
-                <YAxis stroke="var(--text-faint)" fontSize={10} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="attacks" stroke="var(--accent-red)" strokeWidth={2} fillOpacity={1} fill="url(#attackGrad)" />
-                <Area type="monotone" dataKey="blocked" stroke="var(--accent-green)" strokeWidth={2} fillOpacity={1} fill="url(#blockedGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          {/* Micro Status Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+            {[
+              { label: 'BLOCK RATE', value: liveAttackCount > 0 ? `${Math.round((blockedCount/liveAttackCount)*100)}%` : '99%', color: '#00ff88', icon: '🛡️' },
+              { label: 'ATTACK VEL.', value: `${attacksPerMinute||0}/min`, color: '#ff3366', icon: '⚡' },
+              { label: 'IOC POOL', value: `${intelStatus?.iocCount||250}`, color: 'var(--accent-cyan)', icon: '📡' },
+            ].map(({ label, value, color, icon }) => (
+              <div key={label} style={{ background: 'linear-gradient(135deg,rgba(10,18,36,0.92),rgba(13,22,41,0.72))', border: `1px solid ${color}22`, borderRadius: 12, padding: '12px 14px', boxShadow: `0 4px 16px rgba(0,0,0,0.4),inset 0 1px 0 ${color}12`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 8, fontFamily: 'Space Grotesk', fontWeight: 800, color: 'var(--text-faint)', letterSpacing: '0.12em', marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, fontFamily: 'JetBrains Mono', color }}>{value}</div>
+                </div>
+                <span style={{ fontSize: 20 }}>{icon}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Bottom Section: Live Attack Stream Table */}
-      <div style={{
-        background: 'var(--surface-glass)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid var(--border)',
-        borderRadius: '12px',
-        padding: '20px',
-        boxShadow: 'var(--shadow)',
-      }}>
-        {/* Table Toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+      {/* ── Live Attack Stream Table ─────────────────────────────────── */}
+      <div style={{ background: 'linear-gradient(135deg,rgba(10,18,36,0.94),rgba(13,22,41,0.78))', backdropFilter: 'blur(20px)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #ff3366, transparent)', opacity: 0.6 }} />
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 800, fontFamily: 'Outfit', letterSpacing: '0.04em', color: 'var(--text)' }}>
-              LIVE INCIDENT STREAM &amp; FIREWALL INTERCEPT
-            </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk' }}>
-              Showing {filteredAttacks.length} real-time connection hooks
+            <div style={{ fontSize: 14, fontWeight: 800, fontFamily: 'Outfit', letterSpacing: '0.04em', color: 'var(--text)' }}>LIVE INCIDENT STREAM &amp; FIREWALL INTERCEPT</div>
+            <div style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'Space Grotesk', marginTop: 2 }}>
+              Showing <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{filteredAttacks.length}</span> real-time hooks
+              {isFeedPaused && <span style={{ marginLeft: 8, color: '#f0c040', fontWeight: 700 }}>⏸ PAUSED</span>}
             </div>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {/* Search Input */}
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="🔍 Search IP, Threat, Protocol..."
-              style={{
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px solid var(--border)',
-                borderRadius: '6px',
-                padding: '6px 12px',
-                fontSize: '11px',
-                color: 'var(--text)',
-                width: '210px',
-              }}
-            />
-
-            {/* Severity Filter Pills */}
-            <div style={{ display: 'flex', gap: '3px', background: 'rgba(0,0,0,0.3)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>
-              {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM'].map(sev => (
-                <button
-                  key={sev}
-                  onClick={() => setSelectedSeverity(sev)}
-                  style={{
-                    padding: '4px 8px', borderRadius: '4px', fontSize: '10px',
-                    background: selectedSeverity === sev ? 'var(--accent-cyan-dim)' : 'transparent',
-                    border: selectedSeverity === sev ? '1px solid var(--accent-cyan)' : '1px solid transparent',
-                    color: selectedSeverity === sev ? 'var(--accent-cyan)' : 'var(--text-dim)',
-                    fontWeight: 700
-                  }}
-                >
-                  {sev}
-                </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)', fontSize: 12, pointerEvents: 'none' }}>🔍</span>
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search IP, threat, protocol..."
+                style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px 7px 30px', fontSize: 11, color: 'var(--text)', width: 220, outline: 'none' }}
+                onFocus={e => e.target.style.borderColor = 'var(--accent-cyan)'}
+                onBlur={e => e.target.style.borderColor = 'var(--border)'}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 3, background: 'rgba(0,0,0,0.3)', padding: 2, borderRadius: 6, border: '1px solid var(--border)' }}>
+              {['ALL','CRITICAL','HIGH','MEDIUM'].map(sev => (
+                <button key={sev} onClick={() => setSelectedSeverity(sev)} style={{ padding: '4px 8px', borderRadius: 4, fontSize: 10, cursor: 'pointer', background: selectedSeverity===sev ? 'rgba(0,212,255,0.18)' : 'transparent', border: selectedSeverity===sev ? '1px solid var(--accent-cyan)' : '1px solid transparent', color: selectedSeverity===sev ? 'var(--accent-cyan)' : 'var(--text-dim)', fontWeight: 700 }}>{sev}</button>
               ))}
             </div>
-
-            {/* Status Filter */}
-            <div style={{ display: 'flex', gap: '3px', background: 'rgba(0,0,0,0.3)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>
-              {['ALL', 'BLOCKED', 'ACTIVE'].map(st => (
-                <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  style={{
-                    padding: '4px 8px', borderRadius: '4px', fontSize: '10px',
-                    background: statusFilter === st ? 'var(--accent-cyan-dim)' : 'transparent',
-                    border: statusFilter === st ? '1px solid var(--accent-cyan)' : '1px solid transparent',
-                    color: statusFilter === st ? 'var(--accent-cyan)' : 'var(--text-dim)',
-                    fontWeight: 700
-                  }}
-                >
-                  {st}
-                </button>
+            <div style={{ display: 'flex', gap: 3, background: 'rgba(0,0,0,0.3)', padding: 2, borderRadius: 6, border: '1px solid var(--border)' }}>
+              {['ALL','BLOCKED','ACTIVE'].map(st => (
+                <button key={st} onClick={() => setStatusFilter(st)} style={{ padding: '4px 8px', borderRadius: 4, fontSize: 10, cursor: 'pointer', background: statusFilter===st ? 'rgba(0,212,255,0.18)' : 'transparent', border: statusFilter===st ? '1px solid var(--accent-cyan)' : '1px solid transparent', color: statusFilter===st ? 'var(--accent-cyan)' : 'var(--text-dim)', fontWeight: 700 }}>{st}</button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Stream Table */}
-        <div style={{ overflowX: 'auto', maxHeight: '340px' }}>
+        {/* Table */}
+        <div style={{ overflowX: 'auto', maxHeight: 360 }}>
           <table className="cyber-stream-table">
-            <thead>
-              <tr>
-                <th>TIMESTAMP</th>
-                <th>THREAT VECTOR</th>
-                <th>REMOTE HOST / IP</th>
-                <th>LOCATION</th>
-                <th>PROTOCOL</th>
-                <th>SEVERITY</th>
-                <th>STATUS</th>
-                <th>ACTION</th>
-              </tr>
-            </thead>
+            <thead><tr><th>TIMESTAMP</th><th>THREAT VECTOR</th><th>REMOTE HOST / IP</th><th>LOCATION</th><th>PROTOCOL</th><th>SEVERITY</th><th>STATUS</th><th>ACTION</th></tr></thead>
             <tbody>
               {filteredAttacks.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-faint)' }}>
-                    No threats matching the current filter criteria.
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--text-faint)' }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>🔒</div>No threats matching current filters.
+                </td></tr>
+              ) : filteredAttacks.map((item, idx) => (
+                <tr key={item.id || idx}
+                  style={{ transition: 'background 0.15s', cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,212,255,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  onClick={() => setSelectedAttack(item)}
+                >
+                  <td style={{ fontFamily: 'JetBrains Mono', fontSize: 10, color: 'var(--text-faint)' }}>{item.timestamp || 'Just now'}</td>
+                  <td><span style={{ fontWeight: 700, color: 'var(--text)', fontSize: 12 }}>{item.type}</span></td>
+                  <td>
+                    <span onClick={e => { e.stopPropagation(); handleCopyIp(item.ip); }}
+                      style={{ fontFamily: 'JetBrains Mono', fontSize: 11, color: copiedIp === item.ip ? '#00ff88' : 'var(--accent-cyan)', cursor: 'pointer', textDecoration: 'underline dotted', fontWeight: 700, transition: 'color 0.2s' }}
+                      title="Click to copy IP">
+                      {copiedIp === item.ip ? '✓ Copied' : item.ip}
+                    </span>
+                  </td>
+                  <td style={{ color: 'var(--text-dim)', fontSize: 11 }}>{item.location || 'Remote Node'}</td>
+                  <td>
+                    <span style={{ fontFamily: 'JetBrains Mono', fontSize: 10, background: 'rgba(0,212,255,0.08)', color: 'var(--accent-cyan)', padding: '2px 6px', borderRadius: 4, border: '1px solid rgba(0,212,255,0.2)', whiteSpace: 'nowrap' }}>
+                      {item.protocol || 'TCP'}
+                    </span>
+                  </td>
+                  <td><span className={`severity-pill ${item.severity?.toLowerCase()}`}>{item.severity}</span></td>
+                  <td>
+                    {item.blocked ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#00ff88', fontWeight: 700, fontSize: 11 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 6px #00ff88' }} />BLOCKED
+                      </span>
+                    ) : (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#ff3366', fontWeight: 700, fontSize: 11 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff3366', animation: 'blipPulse 1s infinite alternate', boxShadow: '0 0 6px #ff3366' }} />ACTIVE
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <button onClick={e => { e.stopPropagation(); blockIp(item.ip); triggerToast(`🛡️ IP ${item.ip} blocked`); }}
+                      disabled={item.blocked}
+                      style={{ padding: '4px 10px', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: item.blocked ? 'not-allowed' : 'pointer', background: item.blocked ? 'rgba(255,255,255,0.03)' : 'rgba(255,51,102,0.14)', border: `1px solid ${item.blocked ? 'transparent' : 'rgba(255,51,102,0.5)'}`, color: item.blocked ? 'var(--text-faint)' : '#ff3366', transition: 'all 0.15s' }}
+                      onMouseEnter={e => { if (!item.blocked) e.target.style.background = 'rgba(255,51,102,0.25)'; }}
+                      onMouseLeave={e => { if (!item.blocked) e.target.style.background = 'rgba(255,51,102,0.14)'; }}
+                    >
+                      {item.blocked ? 'MITIGATED' : 'BLOCK IP'}
+                    </button>
                   </td>
                 </tr>
-              ) : (
-                filteredAttacks.map((item, idx) => (
-                  <tr key={item.id || idx}>
-                    <td style={{ fontFamily: 'JetBrains Mono', fontSize: '11px', color: 'var(--text-faint)' }}>
-                      {item.timestamp || 'Just now'}
-                    </td>
-                    <td style={{ fontWeight: 700, color: 'var(--text)' }}>
-                      {item.type}
-                    </td>
-                    <td>
-                      <span
-                        onClick={() => handleCopyIp(item.ip)}
-                        style={{
-                          fontFamily: 'JetBrains Mono',
-                          color: copiedIp === item.ip ? 'var(--accent-green)' : 'var(--accent-cyan)',
-                          cursor: 'pointer',
-                          textDecoration: 'underline dotted',
-                          fontWeight: 700
-                        }}
-                        title="Click to copy IP"
-                      >
-                        {item.ip}
-                      </span>
-                    </td>
-                    <td>{item.location || 'Remote Node'}</td>
-                    <td style={{ fontFamily: 'JetBrains Mono', fontSize: '10px' }}>{item.protocol || 'TCP/HTTPS'}</td>
-                    <td>
-                      <span className={`severity-pill ${item.severity?.toLowerCase()}`}>
-                        {item.severity}
-                      </span>
-                    </td>
-                    <td>
-                      {item.blocked ? (
-                        <span style={{ color: 'var(--accent-green)', fontWeight: 700, fontSize: '11px' }}>
-                          ✓ BLOCKED
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--accent-red)', fontWeight: 700, fontSize: '11px' }}>
-                          ● FLAGGED
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => {
-                          blockIp(item.ip);
-                          triggerToast(`IP ${item.ip} blocked via local firewall`);
-                        }}
-                        disabled={item.blocked}
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          background: item.blocked ? 'rgba(255,255,255,0.03)' : 'rgba(255,51,102,0.12)',
-                          border: `1px solid ${item.blocked ? 'transparent' : 'rgba(255,51,102,0.4)'}`,
-                          color: item.blocked ? 'var(--text-faint)' : 'var(--accent-red)',
-                          cursor: item.blocked ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        {item.blocked ? 'MITIGATED' : 'BLOCK IP'}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Selected Attack Inspector Modal */}
+      {/* ── Attack Inspector Modal ──────────────────────────────────── */}
       {selectedAttack && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 10000,
-          background: 'rgba(2, 5, 13, 0.8)',
-          backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{
-            background: 'var(--surface-glass)',
-            backdropFilter: 'blur(24px)',
-            border: '1px solid var(--accent-cyan)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.8), 0 0 24px rgba(0,212,255,0.3)',
-            borderRadius: '12px',
-            maxWidth: '520px',
-            width: '100%',
-            padding: '24px',
-            animation: 'pageFadeIn 0.2s ease-out'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>🔍</span>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(2,5,13,0.88)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'linear-gradient(135deg,rgba(10,18,36,0.98),rgba(13,22,41,0.95))', backdropFilter: 'blur(24px)', border: '1px solid var(--accent-cyan)', boxShadow: '0 24px 64px rgba(0,0,0,0.9), 0 0 40px rgba(0,212,255,0.2)', borderRadius: 16, maxWidth: 520, width: '100%', padding: 28, animation: 'pageFadeIn 0.2s ease-out', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,var(--accent-cyan),transparent)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🔍</div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text)' }}>THREAT EVENT TELEMETRY</h3>
-                  <div style={{ fontSize: '10px', color: 'var(--accent-cyan)', fontFamily: 'Space Grotesk' }}>ID: {selectedAttack.id || 'NODE-EVT'}</div>
+                  <h3 style={{ margin: 0, fontSize: 15, color: 'var(--text)', fontFamily: 'Outfit' }}>THREAT EVENT TELEMETRY</h3>
+                  <div style={{ fontSize: 10, color: 'var(--accent-cyan)', fontFamily: 'Space Grotesk' }}>ID: {selectedAttack.id || 'NODE-EVT'}</div>
                 </div>
               </div>
-              <button onClick={() => setSelectedAttack(null)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '18px', cursor: 'pointer' }}>×</button>
+              <button onClick={() => setSelectedAttack(null)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-dim)', fontSize: 16, cursor: 'pointer', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-faint)' }}>Threat Classification:</span>
-                <strong style={{ color: 'var(--text)' }}>{selectedAttack.type}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-faint)' }}>Remote Host / IP:</span>
-                <strong style={{ color: 'var(--accent-cyan)', fontFamily: 'JetBrains Mono' }}>{selectedAttack.ip}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-faint)' }}>Severity Level:</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12, marginBottom: 20 }}>
+              {[
+                ['Threat Classification', selectedAttack.type, 'var(--text)'],
+                ['Remote Host / IP', selectedAttack.ip, 'var(--accent-cyan)'],
+                ['Protocol', selectedAttack.protocol || 'TCP/HTTPS', 'var(--text-dim)'],
+                ['Origin Geo', selectedAttack.location || 'Local Interface', 'var(--text-dim)'],
+              ].map(([label, value, color], i) => (
+                <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 9, color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.1em', marginBottom: 4 }}>{label}</div>
+                  <strong style={{ color, fontFamily: i === 1 ? 'JetBrains Mono' : 'inherit', fontSize: 12 }}>{value}</strong>
+                </div>
+              ))}
+              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.1em', marginBottom: 4 }}>SEVERITY LEVEL</div>
                 <span className={`severity-pill ${selectedAttack.severity?.toLowerCase()}`}>{selectedAttack.severity}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-faint)' }}>Destination Protocol:</span>
-                <span>{selectedAttack.protocol || 'TCP/HTTPS'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-faint)' }}>Origin Geo:</span>
-                <span>{selectedAttack.location || 'Local Interface'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-faint)' }}>Firewall Status:</span>
-                <span style={{ color: selectedAttack.blocked ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: 700 }}>
-                  {selectedAttack.blocked ? '✓ BLOCKED' : '● ACTIVE / FLAGGED'}
-                </span>
+              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 12px', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.1em', marginBottom: 4 }}>FIREWALL STATUS</div>
+                <strong style={{ color: selectedAttack.blocked ? '#00ff88' : '#ff3366', fontSize: 12 }}>{selectedAttack.blocked ? '✓ BLOCKED' : '● ACTIVE'}</strong>
               </div>
             </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  blockIp(selectedAttack.ip);
-                  triggerToast(`IP ${selectedAttack.ip} blocked in firewall`);
-                  setSelectedAttack(null);
-                }}
-                disabled={selectedAttack.blocked}
-                style={{ flex: 1, padding: '10px' }}
-              >
-                {selectedAttack.blocked ? 'ALREADY MITIGATED' : 'BLOCK THIS IP'}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn-primary" onClick={() => { blockIp(selectedAttack.ip); triggerToast(`🛡️ IP ${selectedAttack.ip} blocked`); setSelectedAttack(null); }} disabled={selectedAttack.blocked} style={{ flex: 1, padding: 12 }}>
+                {selectedAttack.blocked ? 'ALREADY MITIGATED' : '⚡ BLOCK THIS IP NOW'}
               </button>
-              <button
-                className="btn-outline"
-                onClick={() => setSelectedAttack(null)}
-                style={{ padding: '10px 16px' }}
-              >
-                CLOSE
-              </button>
+              <button className="btn-outline" onClick={() => setSelectedAttack(null)} style={{ padding: '12px 18px' }}>CLOSE</button>
             </div>
           </div>
         </div>
