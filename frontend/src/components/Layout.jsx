@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealTime } from '../context/RealTimeContext';
 import { useState, useEffect } from 'react';
+import AIBubble from './AIBubble';
 
 const NAV_ITEMS = [
   {
@@ -502,6 +503,9 @@ export default function Layout({ children, theme, onToggleTheme }) {
           {children}
         </main>
       </div>
+
+      {/* Global Floating AI Assistant Bubble */}
+      <AIBubble />
     </div>
   );
 }

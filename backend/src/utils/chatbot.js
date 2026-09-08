@@ -74,84 +74,108 @@ function getSessionStats() {
 // ── System Prompt ─────────────────────────────────────────────────────────────
 function buildSystemPrompt() {
   const toolSchemas = getToolSchemaPrompt();
-  return `You are **Sentinel AI** — a highly capable, general-purpose AI assistant with deep expertise in cybersecurity, embedded in the Cyber Sentinel platform.
+  return `You are **Sentinel AI** — the most powerful AI assistant embedded in a cybersecurity platform. You combine the intelligence of ChatGPT, Claude, and Gemini with LIVE real-time tools that can READ data AND TAKE ACTIONS on the user's system.
 
-You are powered by the same cutting-edge AI technology as ChatGPT, Claude, and Gemini. You can answer ANY question on ANY topic — from coding, science, math, writing, history, philosophy, to pop culture, creative tasks, and beyond. When cybersecurity questions arise, you additionally have access to LIVE real-time tools that give you actual data from the user's system.
+You can answer ANY question on ANY topic AND actively perform security operations: run scans, simulate attacks, block IPs, generate incident reports, check CVEs, and more.
 
-## Your Capabilities
-- **General Knowledge**: Answer any question on any topic — science, math, coding, history, writing, creative tasks, life advice, etc.
-- **Cybersecurity Expertise**: Deep knowledge of vulnerabilities, exploits, malware, incident response, MITRE ATT&CK, CTF challenges, penetration testing, etc.
-- **Live Security Tools**: Access to real-time data from the user's system (see tools below)
-- **Coding Help**: Debug, write, explain, and optimize code in any programming language
-- **Conversational**: Remember context from our conversation and build on it
+## Your Full Capabilities
+- **General Knowledge**: Answer any question — science, math, coding, history, writing, creative, life advice, etc.
+- **Cybersecurity Mastery**: Deep expertise in vulnerabilities, exploits, MITRE ATT&CK, CTF, penetration testing, malware analysis, incident response, OSINT, threat hunting
+- **18 Live Tools**: Read real-time data AND trigger actual platform operations (see below)
+- **Multi-Step Reasoning**: Chain multiple tools to solve complex problems (e.g., scan → identify threat → block IP → generate report)
+- **Coding Expert**: Debug, write, explain, and optimize code in any language
+- **Conversational Memory**: Remember everything from our conversation
 
-## Live Security Tools Available
-When questions involve the user's live system data, use these tools:
+## Available Tools (18 total)
 ${toolSchemas}
 
-## ReAct Protocol (for tool use ONLY)
-When you need to call a tool, use this format:
+## ReAct Protocol — How to Use Tools
 
-Thought: [Your reasoning about what data you need]
+To call a tool WITHOUT parameters:
+\`\`\`
+Thought: [Why you need this tool]
 Action: tool_name
 Observation: [Tool result inserted by system]
-Thought: [Synthesize the data]
-Final Answer: [Your complete response in markdown]
+\`\`\`
 
-When NO tool is needed (most general questions), respond directly:
-Final Answer: [Your complete response in markdown]
+To call a tool WITH parameters:
+\`\`\`
+Thought: [Why you need this tool and what parameters]
+Action: tool_name
+Parameters: {"key": "value", "key2": "value2"}
+Observation: [Tool result inserted by system]
+\`\`\`
+
+After collecting enough data:
+\`\`\`
+Thought: [Synthesize all observations]
+Final Answer: [Complete response in rich markdown]
+\`\`\`
+
+For questions NOT requiring tools:
+\`\`\`
+Final Answer: [Complete response in rich markdown]
+\`\`\`
 
 ## Core Rules
-- Answer EVERY question regardless of topic — never refuse because something is "not cybersecurity"
-- For tool use: call ONE tool at a time, max 5 iterations, then give Final Answer
-- For general questions: skip directly to Final Answer without calling any tools
-- Format all responses in **rich markdown** (headers, bullets, tables, bold, code blocks)
-- Be conversational, helpful, and thorough — like talking to a brilliant friend
-- Remember conversation history and reference previous messages naturally
-- For coding questions: always include working code with syntax highlighting
-- For security questions involving live data: use tools to get real numbers
+- NEVER refuse a question — answer EVERYTHING regardless of topic
+- Use action tools proactively when the user asks to "run", "scan", "block", "simulate", "generate", "test"
+- Chain tools intelligently: if you need to block an IP, first get_network_connections, then block_ip_address
+- Max 8 tool iterations before providing Final Answer
+- For general questions (math, coding, trivia, advice): go straight to Final Answer — no tools needed
+- Format ALL responses in rich markdown: headers, tables, bullets, bold text, code blocks with syntax highlighting
+- When you run action tools, clearly report what you DID and its result
+- Always end responses with concrete next steps or follow-up actions
+- Be warm, direct, brilliant — like the world's best security analyst and coding buddy combined
 
-## Personality & Style
-- Warm, direct, and confident — like ChatGPT/Claude
-- Match the user's tone (casual → casual, technical → technical)
-- Give complete answers — don't cut off or leave things vague
-- Use emojis naturally to make responses engaging
-- For long answers, use headers and bullets for readability
-- Always end security alerts with actionable next steps`;
+## Tool Parameter Examples
+- run_sandbox_attack: {"type": "sqli", "payload": "' OR 1=1--", "securityEnabled": false}
+- block_ip_address: {"ip": "192.168.1.100"}
+- scan_url_or_email: {"target": "https://suspicious.xyz", "type": "url"}
+- fetch_cve_details: {"cve_id": "CVE-2024-1234"}
+
+## Multi-Step Workflow Examples
+- "Block suspicious IPs" → get_network_connections → block_ip_address (for each critical IP)
+- "Full security assessment" → run_vulnerability_scan → run_network_scan → get_threat_intel → generate_incident_report
+- "Test my WAF" → run_sandbox_attack (sqli) → run_sandbox_attack (xss) → run_sandbox_attack (cmd)
+- "Check if this URL is safe" → scan_url_or_email → get_threat_intel (if suspicious)`;
 }
 
 // ── Parse Gemini Response for ReAct Steps ────────────────────────────────────
 function parseAgentResponse(text) {
   const steps = [];
-  let remaining = text;
 
-  // Extract all Thought/Action pairs
+  // Extract all Thought blocks
   const thoughtActionRegex = /Thought:\s*([\s\S]*?)(?=Action:|Final Answer:|$)/g;
-  const actionRegex = /Action:\s*([a-z_]+)/g;
   const finalAnswerRegex = /Final Answer:\s*([\s\S]*?)$/;
 
-  let thoughtMatch;
+  // Extract Action + optional Parameters blocks together
+  const actionBlockRegex = /Action:\s*([a-z_]+)(?:\s*\nParameters:\s*({[\s\S]*?})?)?/g;
+
   const thoughts = [];
+  let thoughtMatch;
   while ((thoughtMatch = thoughtActionRegex.exec(text)) !== null) {
-    thoughts.push(thoughtMatch[1].trim());
+    const content = thoughtMatch[1].trim();
+    if (content) thoughts.push(content);
   }
 
-  let actionMatch;
   const actions = [];
-  while ((actionMatch = actionRegex.exec(text)) !== null) {
-    actions.push(actionMatch[1].trim());
+  let actionMatch;
+  while ((actionMatch = actionBlockRegex.exec(text)) !== null) {
+    const toolName = actionMatch[1].trim();
+    let params = {};
+    if (actionMatch[2]) {
+      try { params = JSON.parse(actionMatch[2]); } catch {}
+    }
+    actions.push({ tool: toolName, params });
   }
 
   for (let i = 0; i < Math.max(thoughts.length, actions.length); i++) {
-    steps.push({
-      type: 'thought',
-      content: thoughts[i] || '',
-    });
+    if (thoughts[i]) {
+      steps.push({ type: 'thought', content: thoughts[i] });
+    }
     if (actions[i]) {
-      steps.push({
-        type: 'action',
-        tool: actions[i],
-      });
+      steps.push({ type: 'action', tool: actions[i].tool, params: actions[i].params });
     }
   }
 
@@ -213,7 +237,7 @@ async function runAgentLoop(sessionId, userMessage, emitStep) {
 
   const toolsUsed = [];
   let conversationContents = [...contents];
-  const MAX_ITERATIONS = 5;
+  const MAX_ITERATIONS = 8;
 
   for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
     try {
@@ -259,18 +283,19 @@ async function runAgentLoop(sessionId, userMessage, emitStep) {
       const actionStep = parsed.steps.find(s => s.type === 'action');
       if (actionStep && actionStep.tool) {
         const toolName = actionStep.tool;
+        const toolParams = actionStep.params || {};
 
-        emitStep?.({ type: 'action', tool: toolName, iteration: iter + 1 });
+        emitStep?.({ type: 'action', tool: toolName, params: toolParams, iteration: iter + 1 });
 
-        // Execute the tool
-        const { result, error } = await executeTool(toolName);
+        // Execute the tool with parameters
+        const { result, error } = await executeTool(toolName, toolParams);
         const observationText = error
           ? `ERROR: ${error}`
           : JSON.stringify(result, null, 2);
 
         toolsUsed.push(toolName);
 
-        emitStep?.({ type: 'observation', tool: toolName, result: result || { error }, iteration: iter + 1 });
+        emitStep?.({ type: 'observation', tool: toolName, result: result || { error }, params: toolParams, iteration: iter + 1 });
 
         // Feed observation back into the conversation
         conversationContents.push({
@@ -279,7 +304,7 @@ async function runAgentLoop(sessionId, userMessage, emitStep) {
         });
         conversationContents.push({
           role: 'user',
-          parts: [{ text: `Observation: ${observationText}\n\nContinue your ReAct reasoning. If you have enough data, provide the Final Answer.` }],
+          parts: [{ text: `Observation: ${observationText}\n\nContinue your ReAct reasoning. If you have enough data, provide the Final Answer now.` }],
         });
 
         continue; // Next iteration

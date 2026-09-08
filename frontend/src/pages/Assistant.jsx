@@ -5,46 +5,53 @@ import { io as socketIO } from 'socket.io-client';
 
 // ── Quick action prompts organized by module ──────────────────────────────────
 const QUICK_ACTIONS = [
+  { label: '⚡ Actions', icon: '⚡', color: '#ff6b35', prompts: [
+    { text: 'Run a full vulnerability scan right now and show me the results', icon: '🔬' },
+    { text: 'Scan my network and show all suspicious connections', icon: '🕵️' },
+    { text: 'Generate a complete incident report for me', icon: '📊' },
+    { text: 'Block all critical-severity IPs on my network', icon: '🚫' },
+  ]},
   { label: 'System', icon: '📊', color: '#00d4ff', prompts: [
     { text: 'What is my current system status and threat score?', icon: '🖥️' },
     { text: 'Analyze my CPU and memory usage trends', icon: '📈' },
     { text: 'Are there any suspicious processes running right now?', icon: '⚠️' },
     { text: 'How many attacks were detected and blocked today?', icon: '🔴' },
   ]},
-  { label: 'Vulnerabilities', icon: '🔍', color: '#ff6b35', prompts: [
+  { label: 'Vulnerabilities', icon: '🔍', color: '#ff4560', prompts: [
     { text: 'Run a quick vulnerability check on my system', icon: '🔍' },
-    { text: 'Show my critical CVEs and how to fix them', icon: '🩹' },
-    { text: 'Prioritize my vulnerability remediation plan', icon: '📋' },
+    { text: 'Fetch the latest CISA KEV CVEs and explain them', icon: '📰' },
+    { text: 'Show my critical CVEs and remediation steps', icon: '🩹' },
     { text: 'What is my current risk score and what drives it?', icon: '📊' },
   ]},
   { label: 'Threat Intel', icon: '📡', color: '#00ff88', prompts: [
     { text: 'What malware families are active in the threat feed right now?', icon: '🦠' },
-    { text: 'Check my system against the IOC pool for matches', icon: '🔎' },
+    { text: 'Scan this URL: https://example.com — is it malicious?', icon: '🔗' },
     { text: 'Explain the top threats in the current CISA KEV list', icon: '📡' },
     { text: 'Correlate attack feed data with threat intelligence', icon: '⚔️' },
   ]},
-  { label: 'Log Analysis', icon: '📋', color: '#f0c040', prompts: [
+  { label: 'Network', icon: '🌐', color: '#f0c040', prompts: [
+    { text: 'Show all suspicious network connections on my machine', icon: '🌐' },
+    { text: 'List all listening ports and flag the risky ones', icon: '🔌' },
+    { text: 'Run a full network scan against the IOC pool', icon: '🕵️' },
+    { text: 'Show me all currently blocked IPs', icon: '🚫' },
+  ]},
+  { label: 'Sandbox', icon: '⚗️', color: '#b47eff', prompts: [
+    { text: "Run an SQL injection test: ' OR 1=1-- with WAF disabled", icon: '💉' },
+    { text: "Simulate XSS: <script>alert('xss')</script> and show WAF result", icon: '🕸️' },
+    { text: 'Simulate command injection and show if WAF blocks it', icon: '💻' },
+    { text: 'Analyze my last sandbox simulation result in detail', icon: '⚗️' },
+  ]},
+  { label: 'Log Analysis', icon: '📋', color: '#00d4ff', prompts: [
     { text: 'Analyze my last log scan and summarize the threats', icon: '📋' },
     { text: 'What attack patterns were found in the logs?', icon: '🔍' },
     { text: 'How do I detect brute force attacks in SSH logs?', icon: '🔐' },
     { text: 'Classify and triage the most critical log events', icon: '🚨' },
   ]},
-  { label: 'Protection', icon: '🛡️', color: '#b47eff', prompts: [
-    { text: 'Review my last protection center scan result', icon: '🛡️' },
-    { text: 'Analyze current phishing indicators in the feed', icon: '📧' },
-    { text: 'What are the top email threat patterns to watch for?', icon: '🔗' },
-    { text: 'Walk me through a full incident response plan', icon: '🚨' },
-  ]},
-  { label: 'Sandbox', icon: '⚗️', color: '#ff4560', prompts: [
-    { text: 'Analyze my last sandbox simulation result in detail', icon: '⚗️' },
-    { text: 'How does SQL injection work and how do I prevent it?', icon: '💉' },
-    { text: 'Explain XSS attack vectors and defense strategies', icon: '🕸️' },
-    { text: 'What did my WAF block in the last simulation?', icon: '🛡️' },
-  ]},
 ];
 
 // ── Tool icon map ─────────────────────────────────────────────────────────────
 const TOOL_ICONS = {
+  // Read tools
   get_system_status: '🖥️',
   get_attack_feed: '🔴',
   get_threat_intel: '📡',
@@ -52,10 +59,21 @@ const TOOL_ICONS = {
   get_log_analysis: '📋',
   get_protection_scan: '🛡️',
   get_sandbox_result: '⚗️',
-  run_quick_vuln_check: '⚡',
+  get_network_connections: '🌐',
+  get_listening_ports: '🔌',
+  get_blocked_ips: '🚫',
+  // Action tools
+  run_vulnerability_scan: '🔬',
+  run_network_scan: '🕵️',
+  run_sandbox_attack: '💥',
+  block_ip_address: '🚫',
+  scan_url_or_email: '🔗',
+  fetch_cve_details: '📰',
+  generate_incident_report: '📊',
 };
 
 const TOOL_LABELS = {
+  // Read tools
   get_system_status: 'System Status',
   get_attack_feed: 'Attack Feed',
   get_threat_intel: 'Threat Intel',
@@ -63,8 +81,24 @@ const TOOL_LABELS = {
   get_log_analysis: 'Log Analysis',
   get_protection_scan: 'Protection Scan',
   get_sandbox_result: 'Sandbox Result',
-  run_quick_vuln_check: 'Quick Vuln Check',
+  get_network_connections: 'Network Conns',
+  get_listening_ports: 'Listening Ports',
+  get_blocked_ips: 'Blocked IPs',
+  // Action tools (prefix ⚡ to distinguish)
+  run_vulnerability_scan: '⚡ Vuln Scan',
+  run_network_scan: '⚡ Network Scan',
+  run_sandbox_attack: '⚡ Sandbox Attack',
+  block_ip_address: '⚡ Block IP',
+  scan_url_or_email: '⚡ URL/Email Scan',
+  fetch_cve_details: 'CVE Details',
+  generate_incident_report: '⚡ Incident Report',
 };
+
+// Action tools set (for distinct styling)
+const ACTION_TOOLS = new Set([
+  'run_vulnerability_scan', 'run_network_scan', 'run_sandbox_attack',
+  'block_ip_address', 'scan_url_or_email', 'generate_incident_report',
+]);
 
 // ── Markdown renderer ─────────────────────────────────────────────────────────
 function renderMarkdown(text) {
@@ -258,21 +292,32 @@ export default function Assistant() {
 
   const [messages, setMessages] = useState([{
     role: 'bot',
-    text: `## SENTINEL AGENT — ONLINE
+    text: `## 🤖 SENTINEL AI — FULLY OPERATIONAL
 
-I'm your **agentic** SOC AI analyst. I reason step-by-step and call live tools to answer your questions — I don't just guess.
+I'm your **agentic SOC AI** with **18 live tools** — I can read real-time data AND actively execute security operations.
 
-**My Tool Arsenal:**
-- 🖥️ **get_system_status** — live CPU/RAM/Disk/Network/ThreatScore
+### 📖 Read Tools (live data)
+- 🖥️ **get_system_status** — CPU, RAM, Disk, Network, ThreatScore
 - 🔴 **get_attack_feed** — 24h attack timeline & block rate
-- 📡 **get_threat_intel** — IOC pool, malware families (ThreatFox + CISA)
-- 🔍 **get_vuln_scan** — last vulnerability scan findings + CVEs
-- 📋 **get_log_analysis** — log event analysis & threat categories
+- 📡 **get_threat_intel** — IOC pool, malware families (ThreatFox + CISA KEV)
+- 🔍 **get_vuln_scan** — last vulnerability scan results + CVEs
+- 📋 **get_log_analysis** — log event analysis & attack categories
 - 🛡️ **get_protection_scan** — email/link/file protection results
 - ⚗️ **get_sandbox_result** — WAF simulation outcome
-- ⚡ **run_quick_vuln_check** — on-demand system vulnerability check
+- 🌐 **get_network_connections** — live suspicious TCP connections
+- 🔌 **get_listening_ports** — open ports & active connections
+- 🚫 **get_blocked_ips** — currently blocked IPs
 
-Ask me anything — I'll reason through it and call the right tools.`,
+### ⚡ Action Tools (I can EXECUTE these)
+- 🔬 **run_vulnerability_scan** — trigger a live vuln scan
+- 🕵️ **run_network_scan** — scan network vs IOC pool
+- 💥 **run_sandbox_attack** — run SQLi/XSS/CMD simulations
+- 🚫 **block_ip_address** — block a specific IP in real-time
+- 🔗 **scan_url_or_email** — check URL/email against threat feeds
+- 📰 **fetch_cve_details** — look up CVEs from CISA KEV
+- 📊 **generate_incident_report** — create a full incident report
+
+**Ask me to run any action** — like *"Scan my network"*, *"Block suspicious IPs"*, or *"Generate an incident report"* — and I'll DO it!`,
   }]);
 
   const [input, setInput] = useState('');
@@ -381,7 +426,7 @@ Ask me anything — I'll reason through it and call the right tools.`,
           <div className="hud-page-label">NEURAL CORE · SENTINEL AGENT</div>
           <h2 className="hud-page-title">AGENTIC AI ANALYST</h2>
           <p className="hud-page-desc">
-            ReAct-loop SOC agent with 8 live tools, conversation memory, and step-by-step reasoning over real platform data.
+            ReAct-loop SOC agent with 18 live tools — reads data AND executes actions. Run scans, block IPs, simulate attacks, generate incident reports, and answer any question.
           </p>
         </div>
         <div className="hud-page-header-right" style={{ gap: 8 }}>
