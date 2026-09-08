@@ -71,19 +71,21 @@ function MiniSparkline({ data, color = 'var(--accent-cyan)' }) {
 }
 
 /* ── Live Interactive Threat Radar Component ── */
-function ThreatRadar({ attacks, onSelectAttack }) {
+function ThreatRadar({ attacks = [], onSelectAttack }) {
   // Map recent attacks into polar coordinates on radar
   const radarBlips = useMemo(() => {
-    const unique = attacks.slice(0, 14);
+    const list = Array.isArray(attacks) ? attacks : [];
+    const unique = list.slice(0, 14);
     return unique.map((a, i) => {
+      const ipStr = String(a?.ip || `${(i * 37) % 256}.${(i * 59) % 256}.1.1`);
       // Deterministic angle & radius from IP address hash
-      const hash = a.ip.split('.').reduce((acc, oct) => (acc * 31 + parseInt(oct || 0, 10)) % 1000, i * 73);
+      const hash = ipStr.split('.').reduce((acc, oct) => (acc * 31 + parseInt(oct || 0, 10)) % 1000, i * 73);
       const angle = (hash % 360) * (Math.PI / 180);
       const distPercent = 20 + (hash % 65); // 20% to 85% from center
       const x = 50 + (distPercent / 2) * Math.cos(angle);
       const y = 50 + (distPercent / 2) * Math.sin(angle);
-      const col = a.severity === 'CRITICAL' ? 'var(--accent-red)' : a.severity === 'HIGH' ? 'var(--accent-orange)' : a.severity === 'MEDIUM' ? '#f0c040' : 'var(--accent-cyan)';
-      return { ...a, x, y, col };
+      const col = a?.severity === 'CRITICAL' ? 'var(--accent-red)' : a?.severity === 'HIGH' ? 'var(--accent-orange)' : a?.severity === 'MEDIUM' ? '#f0c040' : 'var(--accent-cyan)';
+      return { ...a, x, y, col, ip: ipStr };
     });
   }, [attacks]);
 
