@@ -4305,32 +4305,129 @@ button, input, textarea, select, a {
   overflow: hidden;
 }
 
+/* ── Advanced Tactical Threat Radar ── */
+.radar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+.radar-hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 11px;
+}
+
+.radar-hud-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.radar-hud-stat .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+  animation: pulseDot 1.5s infinite alternate;
+}
+
+.radar-hud-stat .dot.crit {
+  background: var(--accent-red);
+  box-shadow: 0 0 8px var(--accent-red);
+}
+
+@keyframes pulseDot {
+  from { opacity: 0.4; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1.15); }
+}
+
+.radar-bezel {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  margin: 0 auto;
+  border-radius: 50%;
+  padding: 12px;
+  background: radial-gradient(circle, rgba(6, 18, 38, 0.9) 0%, rgba(2, 6, 18, 0.98) 100%);
+  border: 2px solid rgba(0, 212, 255, 0.35);
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.12), inset 0 0 25px rgba(0, 212, 255, 0.1);
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* Compass tick marks and bearings around the bezel */
+.radar-compass-bearing {
+  position: absolute;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.6);
+  pointer-events: none;
+  z-index: 8;
+  transform: translate(-50%, -50%);
+}
+
 .radar-viewport {
   position: relative;
   width: 100%;
-  height: 280px;
+  height: 100%;
   border-radius: 50%;
-  max-width: 280px;
-  margin: 0 auto;
-  background: radial-gradient(circle, rgba(0, 212, 255, 0.05) 0%, rgba(2, 6, 18, 0.95) 75%);
-  border: 2px solid rgba(0, 212, 255, 0.25);
-  box-shadow: inset 0 0 30px rgba(0, 212, 255, 0.1), 0 0 20px rgba(0, 212, 255, 0.15);
+  background: radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.08) 0%, rgba(2, 8, 24, 0.95) 75%);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  box-shadow: inset 0 0 40px rgba(0, 212, 255, 0.15);
   overflow: hidden;
+  user-select: none;
 }
 
-/* Concentric radar rings */
+/* Concentric range rings */
 .radar-ring {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 1px dashed rgba(0, 212, 255, 0.2);
+  border: 1px solid rgba(0, 212, 255, 0.22);
   pointer-events: none;
 }
-.radar-ring.r1 { width: 30%; height: 30%; }
-.radar-ring.r2 { width: 60%; height: 60%; }
-.radar-ring.r3 { width: 90%; height: 90%; }
+
+.radar-ring.r1 { width: 25%; height: 25%; border-style: dotted; }
+.radar-ring.r2 { width: 50%; height: 50%; border-style: dashed; }
+.radar-ring.r3 { width: 75%; height: 75%; border-style: dashed; }
+.radar-ring.r4 { width: 92%; height: 92%; border-style: solid; border-color: rgba(0, 212, 255, 0.3); }
+
+.radar-ring-label {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 4px);
+  font-family: 'Space Grotesk', monospace;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  color: rgba(0, 212, 255, 0.55);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+/* Radial sector spoke lines */
+.radar-sector-spoke {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 212, 255, 0.12) 50%, transparent 100%);
+  transform-origin: center center;
+  pointer-events: none;
+}
 
 /* Crosshairs */
 .radar-crosshair-x {
@@ -4339,15 +4436,50 @@ button, input, textarea, select, a {
   left: 0;
   right: 0;
   height: 1px;
-  background: rgba(0, 212, 255, 0.15);
+  background: rgba(0, 212, 255, 0.3);
+  pointer-events: none;
 }
+
 .radar-crosshair-y {
   position: absolute;
   left: 50%;
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgba(0, 212, 255, 0.15);
+  background: rgba(0, 212, 255, 0.3);
+  pointer-events: none;
+}
+
+/* Center Sentinel Core */
+.radar-center-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 12px var(--accent-cyan), 0 0 24px rgba(0, 212, 255, 0.6);
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.radar-center-hub::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border: 1px solid var(--accent-cyan);
+  border-radius: 50%;
+  animation: radarHubPulse 2s infinite ease-out;
+}
+
+@keyframes radarHubPulse {
+  0%   { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 /* Radar Rotating Sweep Line */
@@ -4358,10 +4490,11 @@ button, input, textarea, select, a {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: conic-gradient(from 0deg at 50% 50%, rgba(0, 212, 255, 0.4) 0deg, rgba(0, 212, 255, 0.05) 45deg, transparent 90deg);
-  animation: radarRotate 4s linear infinite;
+  background: conic-gradient(from 0deg at 50% 50%, rgba(0, 212, 255, 0.45) 0deg, rgba(0, 212, 255, 0.12) 35deg, transparent 85deg);
+  animation: radarRotate var(--sweep-duration, 3.5s) linear infinite;
   transform-origin: center center;
   pointer-events: none;
+  z-index: 4;
 }
 
 @keyframes radarRotate {
@@ -4369,28 +4502,139 @@ button, input, textarea, select, a {
   to   { transform: rotate(360deg); }
 }
 
-/* Radar Blips (Detected IPs) */
+/* Radar Pulse Wave */
+.radar-pulse-wave {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-cyan);
+  box-shadow: 0 0 16px var(--accent-cyan);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+  animation: radarPulseExpand 1.6s ease-out forwards;
+}
+
+@keyframes radarPulseExpand {
+  0%   { width: 10px; height: 10px; opacity: 1; }
+  100% { width: 320px; height: 320px; opacity: 0; border-width: 1px; }
+}
+
+/* Radar Blips (Threats) */
 .radar-blip {
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 10px currentColor;
-  animation: blipPulse 2s ease-in-out infinite alternate;
+  box-shadow: 0 0 12px currentColor;
+  animation: blipGlow 2s ease-in-out infinite alternate;
   cursor: pointer;
+  z-index: 7;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.radar-blip:hover, .radar-blip.active-target {
+  transform: translate(-50%, -50%) scale(2.2);
+  z-index: 15;
+}
+
+@keyframes blipGlow {
+  0% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+}
+
+/* Active Target Reticle Corners */
+.radar-target-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border: 1px dashed var(--accent-red);
+  box-shadow: 0 0 10px rgba(255, 59, 92, 0.4);
+  pointer-events: none;
+  animation: reticleSpin 6s linear infinite;
+  border-radius: 3px;
+}
+
+@keyframes reticleSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Laser Vector Line connecting core to locked target */
+.radar-laser-vector {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
   z-index: 5;
-  transition: transform 0.2s;
 }
 
-.radar-blip:hover {
-  transform: translate(-50%, -50%) scale(2);
-  z-index: 10;
+/* Radar Interactive HUD Floating Card */
+.radar-hud-card {
+  background: rgba(4, 12, 28, 0.94);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--accent-cyan);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 11px;
+  animation: fadeInDown 0.2s ease-out;
 }
 
-@keyframes blipPulse {
-  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.6; }
-  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 1; }
+.radar-controls-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.radar-btn-group {
+  display: flex;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.radar-ctrl-btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: 'Space Grotesk', monospace;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.radar-ctrl-btn.active {
+  background: var(--accent-cyan-dim);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.radar-ctrl-btn:not(.active) {
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.radar-ctrl-btn:hover:not(.active) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* ── Global Threat Vector Matrix Grid ── */

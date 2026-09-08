@@ -71,52 +71,371 @@ function MiniSparkline({ data, color = 'var(--accent-cyan)' }) {
 }
 
 /* ── Live Interactive Threat Radar Component ── */
-function ThreatRadar({ attacks = [], onSelectAttack }) {
-  // Map recent attacks into polar coordinates on radar
-  const radarBlips = useMemo(() => {
+/* ── Military-Grade Tactical Threat Radar Component ── */
+function ThreatRadar({ attacks = [], onSelectAttack, blockIp, triggerToast }) {
+  const [zoom, setZoom] = useState('1x'); // '1x' | '2x' | '4x'
+  const [sweepSpeed, setSweepSpeed] = useState('3.5s'); // '2s' | '3.5s' | '7s'
+  const [filterSeverity, setFilterSeverity] = useState('ALL'); // 'ALL' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'BLOCKED'
+  const [lockedTarget, setLockedTarget] = useState(null);
+  const [hoveredTarget, setHoveredTarget] = useState(null);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const [azimuth, setAzimuth] = useState(0);
+
+  // Animate the azimuth degree readout in sync with sweep speed
+  useEffect(() => {
+    const durationMs = parseFloat(sweepSpeed) * 1000;
+    const intervalMs = 50;
+    const step = (360 / (durationMs / intervalMs));
+    const timer = setInterval(() => {
+      setAzimuth(prev => (prev + step) % 360);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [sweepSpeed]);
+
+  const handlePulse = () => {
+    setIsPulsing(true);
+    if (triggerToast) triggerToast('⚡ Tactical high-frequency radar pulse broadcast');
+    setTimeout(() => setIsPulsing(false), 1600);
+  };
+
+  const handleBlockTarget = (e, ip) => {
+    e.stopPropagation();
+    if (blockIp) blockIp(ip);
+    if (triggerToast) triggerToast(`🛡 IP ${ip} blocked by tactical firewall hook`);
+  };
+
+  // Filter attacks
+  const filteredList = useMemo(() => {
     const list = Array.isArray(attacks) ? attacks : [];
-    const unique = list.slice(0, 14);
-    return unique.map((a, i) => {
-      const ipStr = String(a?.ip || `${(i * 37) % 256}.${(i * 59) % 256}.1.1`);
-      // Deterministic angle & radius from IP address hash
-      const hash = ipStr.split('.').reduce((acc, oct) => (acc * 31 + parseInt(oct || 0, 10)) % 1000, i * 73);
-      const angle = (hash % 360) * (Math.PI / 180);
-      const distPercent = 20 + (hash % 65); // 20% to 85% from center
-      const x = 50 + (distPercent / 2) * Math.cos(angle);
-      const y = 50 + (distPercent / 2) * Math.sin(angle);
-      const col = a?.severity === 'CRITICAL' ? 'var(--accent-red)' : a?.severity === 'HIGH' ? 'var(--accent-orange)' : a?.severity === 'MEDIUM' ? '#f0c040' : 'var(--accent-cyan)';
-      return { ...a, x, y, col, ip: ipStr };
+    return list.filter(a => {
+      if (filterSeverity === 'ALL') return true;
+      if (filterSeverity === 'BLOCKED') return !!a?.blocked;
+      return a?.severity === filterSeverity;
     });
+  }, [attacks, filterSeverity]);
+
+  // Compute stats
+  const stats = useMemo(() => {
+    const list = Array.isArray(attacks) ? attacks : [];
+    return {
+      total: list.length,
+      crit: list.filter(a => a?.severity === 'CRITICAL').length,
+      high: list.filter(a => a?.severity === 'HIGH').length,
+      med: list.filter(a => a?.severity === 'MEDIUM').length,
+      blocked: list.filter(a => a?.blocked).length,
+    };
   }, [attacks]);
 
+  // Map attacks to polar coordinates & scale by zoom
+  const radarBlips = useMemo(() => {
+    const unique = filteredList.slice(0, 18);
+    const zoomMultiplier = zoom === '4x' ? 2.8 : zoom === '2x' ? 1.8 : 1.0;
+
+    return unique.map((a, i) => {
+      const ipStr = String(a?.ip || `${(i * 37) % 256}.${(i * 59) % 256}.1.1`);
+      // Deterministic angle & base radius from IP hash
+      const hash = ipStr.split('.').reduce((acc, oct) => (acc * 31 + parseInt(oct || 0, 10)) % 1000, i * 73);
+      const angleDeg = (hash * 137.5) % 360;
+      const angleRad = angleDeg * (Math.PI / 180);
+
+      // Base distance from center (18% to 88%)
+      const rawDist = 18 + (hash % 70);
+      // Scaled by zoom
+      const scaledDist = Math.min(88, Math.max(12, rawDist * zoomMultiplier));
+
+      const x = 50 + (scaledDist / 2) * Math.cos(angleRad);
+      const y = 50 + (scaledDist / 2) * Math.sin(angleRad);
+
+      const col = a?.severity === 'CRITICAL' ? 'var(--accent-red)'
+        : a?.severity === 'HIGH' ? 'var(--accent-orange)'
+        : a?.severity === 'MEDIUM' ? '#f0c040'
+        : 'var(--accent-cyan)';
+
+      const estDistanceKm = Math.round(scaledDist * 1.15);
+      const estLatencyMs = Math.round(10 + (scaledDist * 0.8));
+
+      return {
+        ...a,
+        ip: ipStr,
+        x,
+        y,
+        col,
+        angleDeg: Math.round(angleDeg),
+        estDistanceKm,
+        estLatencyMs,
+      };
+    });
+  }, [filteredList, zoom]);
+
+  const activeTarget = lockedTarget || hoveredTarget;
+
   return (
-    <div className="radar-viewport">
-      {/* Concentric rings */}
-      <div className="radar-ring r1" />
-      <div className="radar-ring r2" />
-      <div className="radar-ring r3" />
-      {/* Crosshairs */}
-      <div className="radar-crosshair-x" />
-      <div className="radar-crosshair-y" />
-      {/* Sweep Arm */}
-      <div className="radar-sweep" />
-      {/* Blips */}
-      {radarBlips.map((blip, idx) => (
-        <div
-          key={idx}
-          className="radar-blip"
-          style={{
-            left: `${blip.x}%`,
-            top: `${blip.y}%`,
-            background: blip.col,
-            color: blip.col,
-          }}
-          onClick={() => onSelectAttack(blip)}
-          title={`${blip.type} from ${blip.ip} (${blip.severity})`}
-        />
-      ))}
-      <div style={{ position: 'absolute', bottom: 8, right: 12, fontSize: '9px', fontFamily: 'Space Grotesk', color: 'var(--accent-cyan)', letterSpacing: '0.1em', fontWeight: 700 }}>
-        RANGE: ACTIVE HOOKS
+    <div className="radar-wrapper">
+      {/* Top HUD Telemetry Bar */}
+      <div className="radar-hud-header">
+        <div className="radar-hud-stat">
+          <span className={`dot ${stats.crit > 0 ? 'crit' : ''}`} />
+          <span style={{ fontWeight: 700, color: 'var(--accent-cyan)', letterSpacing: '0.06em' }}>
+            SWEEP: 360° ACTIVE
+          </span>
+          <span style={{ color: 'var(--text-faint)', margin: '0 4px' }}>|</span>
+          <span style={{ color: 'var(--text-dim)', fontSize: '10px' }}>
+            AZM: <strong style={{ color: 'var(--accent-cyan)' }}>{Math.round(azimuth).toString().padStart(3, '0')}°</strong>
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', fontSize: '10px' }}>
+          <span title="Critical Threats" style={{ color: 'var(--accent-red)', fontWeight: 700 }}>● {stats.crit}</span>
+          <span title="High Threats" style={{ color: 'var(--accent-orange)', fontWeight: 700 }}>● {stats.high}</span>
+          <span title="Medium Threats" style={{ color: '#f0c040', fontWeight: 700 }}>● {stats.med}</span>
+          <span title="Active Blips" style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>Σ {radarBlips.length}</span>
+        </div>
+      </div>
+
+      {/* Radar Filter Toggles */}
+      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+        {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'BLOCKED'].map(lvl => (
+          <button
+            key={lvl}
+            onClick={() => setFilterSeverity(lvl)}
+            style={{
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '9px',
+              fontFamily: 'Space Grotesk',
+              fontWeight: 700,
+              cursor: 'pointer',
+              background: filterSeverity === lvl ? 'var(--accent-cyan-dim)' : 'rgba(0,0,0,0.35)',
+              border: filterSeverity === lvl ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.08)',
+              color: filterSeverity === lvl ? 'var(--accent-cyan)' : 'var(--text-dim)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {lvl}
+          </button>
+        ))}
+      </div>
+
+      {/* Outer Tactical Bezel */}
+      <div className="radar-bezel" style={{ '--sweep-duration': sweepSpeed }}>
+        {/* Compass Cardinal Bearings */}
+        <span className="radar-compass-bearing" style={{ top: '6px', left: '50%' }}>000° N</span>
+        <span className="radar-compass-bearing" style={{ top: '15%', right: '15%' }}>045° NE</span>
+        <span className="radar-compass-bearing" style={{ top: '50%', right: '6px' }}>090° E</span>
+        <span className="radar-compass-bearing" style={{ bottom: '15%', right: '15%' }}>135° SE</span>
+        <span className="radar-compass-bearing" style={{ bottom: '6px', left: '50%' }}>180° S</span>
+        <span className="radar-compass-bearing" style={{ bottom: '15%', left: '15%' }}>225° SW</span>
+        <span className="radar-compass-bearing" style={{ top: '50%', left: '6px' }}>270° W</span>
+        <span className="radar-compass-bearing" style={{ top: '15%', left: '15%' }}>315° NW</span>
+
+        {/* Circular Viewport */}
+        <div className="radar-viewport">
+          {/* Concentric distance rings */}
+          <div className="radar-ring r1"><span className="radar-ring-label">SUBNET 25km</span></div>
+          <div className="radar-ring r2"><span className="radar-ring-label">GATEWAY 50km</span></div>
+          <div className="radar-ring r3"><span className="radar-ring-label">PERIMETER 75km</span></div>
+          <div className="radar-ring r4"><span className="radar-ring-label">WAN 100km</span></div>
+
+          {/* Radial sector spokes */}
+          <div className="radar-sector-spoke" style={{ transform: 'translate(-50%, -50%) rotate(30deg)' }} />
+          <div className="radar-sector-spoke" style={{ transform: 'translate(-50%, -50%) rotate(60deg)' }} />
+          <div className="radar-sector-spoke" style={{ transform: 'translate(-50%, -50%) rotate(120deg)' }} />
+          <div className="radar-sector-spoke" style={{ transform: 'translate(-50%, -50%) rotate(150deg)' }} />
+
+          {/* Crosshairs */}
+          <div className="radar-crosshair-x" />
+          <div className="radar-crosshair-y" />
+
+          {/* Center Sentinel Core Hub */}
+          <div className="radar-center-hub" title="Sentinel Defense Core" />
+
+          {/* Rotating Sweep Beam */}
+          <div className="radar-sweep" />
+
+          {/* Shockwave Pulse */}
+          {isPulsing && <div className="radar-pulse-wave" />}
+
+          {/* Laser Vector connecting Center to Locked Target */}
+          {activeTarget && (
+            <svg className="radar-laser-vector">
+              <line
+                x1="50%"
+                y1="50%"
+                x2={`${activeTarget.x}%`}
+                y2={`${activeTarget.y}%`}
+                stroke={activeTarget.col || 'var(--accent-red)'}
+                strokeWidth="1.5"
+                strokeDasharray="4 3"
+                opacity="0.85"
+              />
+            </svg>
+          )}
+
+          {/* Radar Blips */}
+          {radarBlips.map((blip, idx) => {
+            const isSelected = lockedTarget?.ip === blip.ip;
+            return (
+              <div
+                key={blip.id || idx}
+                className={`radar-blip ${isSelected ? 'active-target' : ''}`}
+                style={{
+                  left: `${blip.x}%`,
+                  top: `${blip.y}%`,
+                  background: blip.col,
+                  color: blip.col,
+                }}
+                onMouseEnter={() => setHoveredTarget(blip)}
+                onMouseLeave={() => setHoveredTarget(null)}
+                onClick={() => {
+                  setLockedTarget(prev => prev?.ip === blip.ip ? null : blip);
+                  if (onSelectAttack) onSelectAttack(blip);
+                }}
+                title={`${blip.type} · ${blip.ip} (${blip.severity})`}
+              >
+                {isSelected && <div className="radar-target-reticle" />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Target Intelligence Overlay HUD Card (When blip locked or hovered) */}
+      {activeTarget ? (
+        <div className="radar-hud-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ color: 'var(--accent-red)', fontWeight: 800, fontSize: '10px', letterSpacing: '0.08em' }}>
+                [ TARGET {lockedTarget?.ip === activeTarget.ip ? 'LOCKED' : 'TRACKED'} ]
+              </span>
+              <span className={`severity-pill ${activeTarget.severity?.toLowerCase()}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
+                {activeTarget.severity}
+              </span>
+            </div>
+            <button
+              onClick={() => { setLockedTarget(null); setHoveredTarget(null); }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '12px' }}
+              title="Dismiss lock"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '10px' }}>
+            <div>
+              <div style={{ color: 'var(--text-dim)', fontSize: '9px' }}>IP ADDRESS</div>
+              <div style={{ color: 'var(--accent-cyan)', fontWeight: 700, fontFamily: 'JetBrains Mono' }}>{activeTarget.ip}</div>
+            </div>
+            <div>
+              <div style={{ color: 'var(--text-dim)', fontSize: '9px' }}>THREAT VECTOR</div>
+              <div style={{ color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {activeTarget.type}
+              </div>
+            </div>
+            <div>
+              <div style={{ color: 'var(--text-dim)', fontSize: '9px' }}>BEARING & DISTANCE</div>
+              <div style={{ color: 'var(--text-muted)' }}>
+                {activeTarget.angleDeg}° · {activeTarget.estDistanceKm}km ({activeTarget.estLatencyMs}ms)
+              </div>
+            </div>
+            <div>
+              <div style={{ color: 'var(--text-dim)', fontSize: '9px' }}>ORIGIN / PROTOCOL</div>
+              <div style={{ color: 'var(--text-muted)' }}>
+                {activeTarget.location || 'Local'} · {activeTarget.protocol || 'TCP'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <button
+              onClick={(e) => handleBlockTarget(e, activeTarget.ip)}
+              style={{
+                flex: 1,
+                padding: '5px 10px',
+                background: 'rgba(255, 59, 92, 0.15)',
+                border: '1px solid var(--accent-red)',
+                borderRadius: '4px',
+                color: 'var(--accent-red)',
+                fontSize: '10px',
+                fontFamily: 'Space Grotesk',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+              }}
+            >
+              ⚡ QUICK BLOCK IP
+            </button>
+            <button
+              onClick={() => {
+                if (onSelectAttack) onSelectAttack(activeTarget);
+              }}
+              style={{
+                padding: '5px 10px',
+                background: 'rgba(0, 212, 255, 0.1)',
+                border: '1px solid var(--accent-cyan)',
+                borderRadius: '4px',
+                color: 'var(--accent-cyan)',
+                fontSize: '10px',
+                fontFamily: 'Space Grotesk',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              DETAILS
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ textAlign: 'center', fontSize: '9px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk', letterSpacing: '0.05em' }}>
+          CLICK OR HOVER ANY RADAR BLIP TO ENGAGE TARGET LOCK
+        </div>
+      )}
+
+      {/* Radar Controls Strip (Zoom, Speed, Pulse) */}
+      <div className="radar-controls-strip">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'Space Grotesk', fontWeight: 700 }}>ZOOM:</span>
+          <div className="radar-btn-group">
+            {['1x', '2x', '4x'].map(z => (
+              <button
+                key={z}
+                className={`radar-ctrl-btn ${zoom === z ? 'active' : ''}`}
+                onClick={() => setZoom(z)}
+              >
+                {z}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '9px', color: 'var(--text-dim)', fontFamily: 'Space Grotesk', fontWeight: 700 }}>SPEED:</span>
+          <div className="radar-btn-group">
+            {[
+              { label: 'FAST', speed: '2s' },
+              { label: 'NORM', speed: '3.5s' },
+              { label: 'DEEP', speed: '7s' },
+            ].map(s => (
+              <button
+                key={s.speed}
+                className={`radar-ctrl-btn ${sweepSpeed === s.speed ? 'active' : ''}`}
+                onClick={() => setSweepSpeed(s.speed)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={handlePulse}
+          className="radar-ctrl-btn active"
+          style={{ padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+          title="Send radar sonar ping"
+        >
+          📡 PULSE
+        </button>
       </div>
     </div>
   );
@@ -367,7 +686,7 @@ export default function Dashboard() {
       </div>
 
       {/* Center 2-Column Section: Live Threat Radar + Attack Velocity Timeline */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: '20px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 460px) 1fr', gap: '20px', marginBottom: '24px' }}>
         {/* Left: Interactive Threat Radar */}
         <div className="threat-radar-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -408,7 +727,12 @@ export default function Dashboard() {
           </div>
 
           {viewMode === 'radar' ? (
-            <ThreatRadar attacks={attackFeed} onSelectAttack={setSelectedAttack} />
+            <ThreatRadar
+              attacks={attackFeed}
+              onSelectAttack={setSelectedAttack}
+              blockIp={blockIp}
+              triggerToast={triggerToast}
+            />
           ) : (
             <div className="vector-matrix">
               {attackFeed.slice(0, 16).map((node, idx) => (
