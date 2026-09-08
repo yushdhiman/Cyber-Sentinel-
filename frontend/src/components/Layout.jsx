@@ -117,21 +117,40 @@ export default function Layout({ children, theme, onToggleTheme }) {
   const navigate = useNavigate();
   const [showThemePanel, setShowThemePanel] = useState(false);
   const [timeStr, setTimeStr] = useState('');
+  const [showCmdPalette, setShowCmdPalette] = useState(false);
+  const [cmdSearch, setCmdSearch] = useState('');
 
+  // Global Ctrl + K / Cmd + K listener
   useEffect(() => {
-    const updateTime = () => {
-      const d = new Date();
-      setTimeStr(d.toLocaleTimeString('en-US', { hour12: false }));
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setShowCmdPalette(prev => !prev);
+      } else if (e.key === 'Escape') {
+        setShowCmdPalette(false);
+      }
     };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  function handleLogout() {
-    logout();
-    navigate('/');
-  }
+  const COMMAND_ITEMS = [
+    { label: 'Operational Threat Radar & Dashboard', category: 'NAVIGATION', action: () => navigate('/') },
+    { label: 'MITRE ATT&CK & CISA KEV Threat Intel', category: 'NAVIGATION', action: () => navigate('/threat-intel') },
+    { label: 'Heuristic SIEM Log Analyzer', category: 'NAVIGATION', action: () => navigate('/log-analyzer') },
+    { label: 'OWASP Vulnerability Configuration Scanner', category: 'NAVIGATION', action: () => navigate('/vuln-scanner') },
+    { label: 'Gemini AI Security Copilot Assistant', category: 'NAVIGATION', action: () => navigate('/assistant') },
+    { label: 'Interactive Malware Analysis Sandbox', category: 'NAVIGATION', action: () => navigate('/sandbox') },
+    { label: 'Active Defense & Firewall Protection Center', category: 'NAVIGATION', action: () => navigate('/protection-center') },
+    { label: 'Cryptographic & Cyber Security Tools', category: 'NAVIGATION', action: () => navigate('/security-tools') },
+    { label: 'Operator Clearance Profile & Credentials', category: 'NAVIGATION', action: () => navigate('/profile') },
+    { label: 'Toggle High-Contrast Indigo Theme', category: 'SYSTEM', action: () => onToggleTheme() },
+  ];
+
+  const filteredCommands = COMMAND_ITEMS.filter(c => 
+    c.label.toLowerCase().includes(cmdSearch.toLowerCase()) || 
+    c.category.toLowerCase().includes(cmdSearch.toLowerCase())
+  );
 
   const currentTheme = THEMES.find(t => t.id === theme) || THEMES[0];
 
@@ -363,6 +382,10 @@ export default function Layout({ children, theme, onToggleTheme }) {
               <span style={{ color: 'var(--accent-cyan)', textShadow: '0 0 8px var(--accent-cyan)' }}>◈</span>
               SECURITY OPERATIONS CENTER
             </div>
+            {/* Google Cloud-style Fleet Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: 'rgba(0, 212, 255, 0.06)', border: '1px solid rgba(0, 212, 255, 0.25)', borderRadius: '4px', fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent-cyan)' }}>
+              <span>⚡</span> FLEET: prod-us-central1-soc
+            </div>
             {/* Live UTC time */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: 'var(--surface-glass)', border: '1px solid var(--border-subtle)', borderRadius: '4px', fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent-cyan)' }}>
               <span style={{ color: 'var(--text-faint)' }}>SYS TIME:</span> {timeStr || '00:00:00'}
@@ -370,6 +393,15 @@ export default function Layout({ children, theme, onToggleTheme }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Google Cloud-style Omni-search trigger */}
+            <button className="topbar-search-trigger" onClick={() => setShowCmdPalette(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <span style={{ flex: 1, textAlign: 'left' }}>Search IOCs or tools...</span>
+              <span className="cmd-palette-kbd">Ctrl K</span>
+            </button>
+
             {/* Live Attack Counter in Topbar */}
             {liveAttackCount > 0 && (
               <div style={{
@@ -415,6 +447,55 @@ export default function Layout({ children, theme, onToggleTheme }) {
             </div>
           </div>
         </header>
+
+        {/* Global Google-style Command Palette Modal */}
+        {showCmdPalette && (
+          <div className="cmd-palette-backdrop" onClick={() => setShowCmdPalette(false)}>
+            <div className="cmd-palette-modal" onClick={e => e.stopPropagation()}>
+              <div className="cmd-palette-input-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  type="text"
+                  className="cmd-palette-input"
+                  placeholder="Search IOCs, CVEs, or jump to any module..."
+                  value={cmdSearch}
+                  onChange={e => setCmdSearch(e.target.value)}
+                  autoFocus
+                />
+                <span className="cmd-palette-kbd" style={{ cursor: 'pointer' }} onClick={() => setShowCmdPalette(false)}>ESC</span>
+              </div>
+              <div className="cmd-palette-list">
+                <div className="cmd-palette-group-title">QUICK JUMP & MODULES</div>
+                {filteredCommands.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="cmd-palette-item"
+                    onClick={() => {
+                      item.action();
+                      setShowCmdPalette(false);
+                      setCmdSearch('');
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: 'var(--accent-cyan)' }}>›</span>
+                      {item.label}
+                    </span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'Space Grotesk' }}>
+                      {item.category}
+                    </span>
+                  </div>
+                ))}
+                {filteredCommands.length === 0 && (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '12px' }}>
+                    No matching modules or commands found.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Viewport */}
         <main className="content" style={{ padding: '24px 28px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
