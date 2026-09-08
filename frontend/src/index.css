@@ -114,15 +114,18 @@ html, body, #root {
 }
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
   background-image: 
-    radial-gradient(circle at 15% 15%, rgba(0, 212, 255, 0.04) 0%, transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(179, 102, 255, 0.03) 0%, transparent 40%),
-    linear-gradient(rgba(0, 212, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.025) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
-  background-position: center;
+    radial-gradient(circle at 50% 0%, rgba(0, 212, 255, 0.09) 0%, transparent 55%),
+    radial-gradient(circle at 90% 90%, rgba(179, 102, 255, 0.04) 0%, transparent 45%),
+    linear-gradient(180deg, rgba(3, 7, 18, 0.82) 0%, rgba(3, 7, 18, 0.92) 100%),
+    linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px),
+    url('/cyber_soc_bg.jpg');
+  background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px, cover;
+  background-position: center center;
   background-attachment: fixed;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, no-repeat;
   color: var(--text);
   font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -135,9 +138,14 @@ body {
   background-color: var(--bg);
   background-image: 
     radial-gradient(circle at 15% 15%, rgba(79, 70, 229, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.04) 0%, transparent 40%),
+    linear-gradient(180deg, rgba(244, 247, 252, 0.92) 0%, rgba(244, 247, 252, 0.97) 100%),
     linear-gradient(rgba(79, 70, 229, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(79, 70, 229, 0.035) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(79, 70, 229, 0.035) 1px, transparent 1px),
+    url('/cyber_soc_bg.jpg');
+  background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px, cover;
+  background-position: center center;
+  background-attachment: fixed;
+  background-repeat: no-repeat, no-repeat, repeat, repeat, no-repeat;
 }
 
 h1, h2, h3, h4, h5, h6 {
