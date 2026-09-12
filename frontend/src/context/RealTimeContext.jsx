@@ -15,38 +15,21 @@ const getSocketUrl = () => {
     return import.meta.env.VITE_API_URL.replace(/\/api$/, '');
   }
   if (import.meta.env.DEV) {
-    return 'http://localhost:10000';
+    return 'http://localhost:5000';
   }
-  // Production fallback: Connect directly to the production Render WebSocket server
-  return 'https://cyber-sentinel-7xfn.onrender.com';
+  // If hosted online, connect dynamically to origin or configured environment
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return window.location.origin;
+  }
+  return 'http://localhost:5000';
 };
 
 const SOCKET_URL = getSocketUrl();
 const MAX_FEED_EVENTS = 60; // Rolling window of last 60 attacks
 const MAX_TIMELINE_BUCKETS = 24;
 
-const INITIAL_SYSTEM_METRICS = {
-  threatScore: 38,
-  riskLevel: 'MODERATE',
-  cpuUsage: 26,
-  cpuCores: 8,
-  cpuModel: 'Intel Xeon Cloud Node',
-  memoryUsage: 44,
-  memoryTotalGB: 16,
-  memoryUsedGB: 7.04,
-  networkHealth: 99.4,
-  uptimeDays: 14,
-  hostname: 'prod-us-central1-scc',
-  liveAttackCount: 154,
-  blockedToday: 98,
-  packetInspectionRate: 1420
-};
-
-const INITIAL_ATTACK_FEED = [
-  { id: 'seed-atk-1', ip: '194.26.29.112', sourceIp: '194.26.29.112', type: 'Cobalt Strike C2 Beacon', severity: 'CRITICAL', protocol: 'HTTPS/443', location: 'Frankfurt, DE', blocked: false, timestamp: new Date(Date.now() - 12000).toISOString(), dataSource: 'ThreatFox', dataType: 'IOC', isSimulation: false },
-  { id: 'seed-atk-2', ip: '45.154.255.89', sourceIp: '45.154.255.89', type: 'LockBit 3.0 Ransomware Drop', severity: 'CRITICAL', protocol: 'TCP/4444', location: 'Amsterdam, NL', blocked: false, timestamp: new Date(Date.now() - 32000).toISOString(), dataSource: 'ThreatFox', dataType: 'IOC', isSimulation: false },
-  { id: 'seed-atk-3', ip: '103.203.57.18', sourceIp: '103.203.57.18', type: 'CVE-2021-44228 Log4j RCE Probe', severity: 'HIGH', protocol: 'LDAP/389', location: 'Singapore, SG', blocked: false, timestamp: new Date(Date.now() - 65000).toISOString(), dataSource: 'CISA KEV', dataType: 'VULNERABILITY', isSimulation: false },
-];
+const INITIAL_SYSTEM_METRICS = null;
+const INITIAL_ATTACK_FEED = [];
 
 const INITIAL_TIMELINE = Array.from({ length: 24 }, (_, i) => {
   const d = new Date(Date.now() - (23 - i) * 30 * 60 * 1000);
@@ -79,39 +62,36 @@ export function RealTimeProvider({ children }) {
   const [connected, setConnected] = useState(false);
   const [connectionState, setConnectionState] = useState('connecting'); // 'connected' | 'connecting' | 'reconnecting'
 
-  // ── Shared Real-Time State with resilient enterprise initial defaults ──
+  // ── Shared Real-Time State (Strictly telemetry-driven, no mocked initial values) ──
   const [systemMetrics, setSystemMetrics] = useState(INITIAL_SYSTEM_METRICS); // CPU, RAM, threat score
   const [attackFeed, setAttackFeed] = useState(INITIAL_ATTACK_FEED);           // Rolling live attack events
   const [timeline, setTimeline] = useState(INITIAL_TIMELINE);                 // 24-bucket attack volume chart
   const [linkedDevices, setLinkedDevices] = useState([]);                     // Real network adapters
   const [systemFindings, setSystemFindings] = useState([]);                   // Security findings
   const [criticalAlert, setCriticalAlert] = useState(null);                   // Latest critical alert
-  const [blockedCount, setBlockedCount] = useState(98);                       // Cumulative blocked counter
-  const [attacksPerMinute, setAttacksPerMinute] = useState(14);               // Rolling APM
-  const [liveAttackCount, setLiveAttackCount] = useState(154);                // Cumulative live attacks
-  const [intelStatus, setIntelStatus] = useState({ source: 'ThreatFox & CISA KEV', iocCount: 250, lastSync: new Date().toISOString() });
+  const [blockedCount, setBlockedCount] = useState(0);                        // Cumulative blocked counter
+  const [attacksPerMinute, setAttacksPerMinute] = useState(0);                // Rolling APM
+  const [liveAttackCount, setLiveAttackCount] = useState(0);                  // Cumulative live attacks
+  const [intelStatus, setIntelStatus] = useState({ source: 'ThreatFox & CISA KEV', iocCount: 0, lastSync: new Date().toISOString() });
   const [listeningPorts, setListeningPorts] = useState([]);                    // Real open ports on this machine
 
-  const [latencyMs, setLatencyMs] = useState(18);
+  const [latencyMs, setLatencyMs] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   function playCyberAlertBeep() {
     if (!soundEnabled) return;
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + 0.15);
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
       osc.start();
-      osc.stop(ctx.currentTime + 0.16);
+      osc.stop(audioCtx.currentTime + 0.35);
     } catch (e) {
       // Audio context may be restricted by autoplay policy
     }
@@ -138,7 +118,7 @@ export function RealTimeProvider({ children }) {
   const updateApm = useCallback(() => {
     const now = Date.now();
     attackTimestamps.current = attackTimestamps.current.filter(t => now - t < 60000);
-    setAttacksPerMinute(Math.max(8, attackTimestamps.current.length));
+    setAttacksPerMinute(attackTimestamps.current.length);
   }, []);
 
   useEffect(() => {
@@ -153,6 +133,7 @@ export function RealTimeProvider({ children }) {
       setConnectionState('connecting');
 
       socket = io(SOCKET_URL, {
+        auth: { token },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: Infinity,

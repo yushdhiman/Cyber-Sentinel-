@@ -24,9 +24,9 @@ router.post('/message', async (req, res) => {
     return res.status(400).json({ error: 'message (string) is required' });
   }
 
-  // Use provided session ID or generate a stable one per user
-  const userId = req.user?.id || req.user?.email || 'anonymous';
-  const sessionId = clientSessionId || `user-${userId}`;
+  // Use provided session ID scoped strictly to the authenticated user to prevent cross-user session leakage
+  const userKey = req.user?.email || req.user?.id || 'anonymous';
+  const sessionId = clientSessionId ? `${userKey}:${clientSessionId}` : `user-${userKey}`;
 
   try {
     // Build a Socket.IO emitter for live agent step streaming
@@ -61,8 +61,13 @@ router.post('/message', async (req, res) => {
  */
 router.delete('/session/:sessionId', (req, res) => {
   const { sessionId } = req.params;
-  clearSession(sessionId);
-  res.json({ success: true, message: `Session ${sessionId} cleared.` });
+  const userKey = req.user?.email || req.user?.id || 'anonymous';
+
+  if (sessionId.startsWith(`${userKey}:`) || sessionId === `user-${userKey}`) {
+    clearSession(sessionId);
+    return res.json({ success: true, message: `Session ${sessionId} cleared.` });
+  }
+  return res.status(403).json({ error: 'Access denied: Cannot clear sessions belonging to other operators.' });
 });
 
 /**

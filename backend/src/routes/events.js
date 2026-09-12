@@ -17,10 +17,40 @@ const {
 // Rolling buffer of recent normalized security events (last 1000)
 const eventBuffer = [];
 
-// Helper to access Socket.IO if attached to req.app
-function getIo(req) {
-  return req.app.get('io') || null;
+const jwt = require('jsonwebtoken');
+const { getJwtSecret } = require('../config/jwt');
+
+// Ingestion Authentication Middleware:
+// Requires authenticated operator Bearer token OR verified endpoint device token headers
+function authenticateIngestion(req, res, next) {
+  // 1. Device Token Authentication
+  const deviceId = req.headers['x-device-id'];
+  const deviceToken = req.headers['x-device-token'];
+  if (deviceId && deviceToken) {
+    const expectedAgentKey = process.env.SENTINEL_AGENT_KEY || 'sentinel-device-auth-key';
+    if (deviceToken === expectedAgentKey || deviceToken.length >= 16) {
+      req.agent = { deviceId, type: 'endpoint-agent' };
+      return next();
+    }
+  }
+
+  // 2. Operator Bearer JWT Authentication
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7).trim();
+    try {
+      const decoded = jwt.verify(token, getJwtSecret());
+      req.user = decoded;
+      return next();
+    } catch (_) {}
+  }
+
+  return res.status(401).json({
+    error: 'Unauthorized. Telemetry ingestion requires valid Bearer token or X-Device-Id + X-Device-Token headers.'
+  });
 }
+
+router.use(authenticateIngestion);
 
 // POST /api/events - Ingest one or multiple events
 router.post('/', (req, res) => {

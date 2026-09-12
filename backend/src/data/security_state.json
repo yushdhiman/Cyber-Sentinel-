@@ -1,39 +1,8 @@
 {
-  "blockedIps": {
-    "198.51.100.88": {
-      "ip": "198.51.100.88",
-      "reason": "Automated test containment",
-      "blockedAt": "2026-09-12T06:43:47.530Z",
-      "blockedBy": "test_runner",
-      "active": false,
-      "unblockedAt": "2026-09-12T06:43:47.536Z"
-    },
-    "203.0.113.77": {
-      "ip": "203.0.113.77",
-      "reason": "AI recommendation confirmed by operator",
-      "blockedAt": "2026-09-12T06:43:47.540Z",
-      "blockedBy": "AI Copilot",
-      "active": true
-    },
-    "10.0.0.1": {
-      "ip": "10.0.0.1",
-      "reason": "Manual analyst containment",
-      "blockedAt": "2026-09-12T06:43:47.955Z",
-      "blockedBy": "senior@sentinel.ai",
-      "active": true
-    },
-    "203.0.113.150": {
-      "ip": "203.0.113.150",
-      "reason": "Operator verified malicious C2",
-      "blockedAt": "2026-09-12T06:57:17.727Z",
-      "blockedBy": "AI Copilot",
-      "active": false,
-      "unblockedAt": "2026-09-12T06:57:17.728Z"
-    }
-  },
+  "blockedIps": {},
   "incidents": [
     {
-      "id": "INC-3771653",
+      "id": "INC-4666473",
       "title": "Verification Suite Test Incident",
       "severity": "HIGH",
       "category": "C2 Activity",
@@ -56,34 +25,34 @@
           }
         ],
         "sha256": "33a3c337c57197c8accfc549817a1f8f4cd14119cef1a61180dfc5bf45acf3ac",
-        "preservedAt": "2026-09-12T06:57:17.716Z"
+        "preservedAt": "2026-09-12T08:02:26.664Z"
       },
       "evidenceHash": "33a3c337c57197c8accfc549817a1f8f4cd14119cef1a61180dfc5bf45acf3ac",
       "timeline": [
         {
-          "timestamp": "2026-09-12T06:57:17.716Z",
+          "timestamp": "2026-09-12T08:02:26.664Z",
           "action": "INCIDENT_CREATED",
           "actor": "correlation-engine",
           "note": "Incident automatically flagged and correlated: Verification Suite Test Incident"
         },
         {
-          "timestamp": "2026-09-12T06:57:17.718Z",
+          "timestamp": "2026-09-12T08:02:26.665Z",
           "action": "STATUS_CHANGE",
           "actor": "Analyst triage started",
           "note": "Status transitioned from NEW to INVESTIGATING"
         },
         {
-          "timestamp": "2026-09-12T06:57:17.721Z",
+          "timestamp": "2026-09-12T08:02:26.665Z",
           "action": "STATUS_CHANGE",
           "actor": "Host isolated via SOC firewall",
           "note": "Status transitioned from INVESTIGATING to CONTAINED"
         }
       ],
-      "createdAt": "2026-09-12T06:57:17.716Z",
-      "updatedAt": "2026-09-12T06:57:17.721Z"
+      "createdAt": "2026-09-12T08:02:26.664Z",
+      "updatedAt": "2026-09-12T08:02:26.665Z"
     },
     {
-      "id": "INC-3771427",
+      "id": "INC-4666390",
       "title": "Suspicious Process Execution (powershell.exe) with C2 Connection",
       "severity": "CRITICAL",
       "category": "ENDPOINT_EXECUTION",
@@ -106,26 +75,26 @@
           "processName": "powershell.exe",
           "commandLine": "powershell.exe -w hidden -enc JAB4ACAAPQAgACcAdABlAHMAdAAnAA==",
           "outboundIp": "198.51.100.99",
-          "detectedAt": "2026-09-12T06:57:17.714Z"
+          "detectedAt": "2026-09-12T08:02:26.663Z"
         },
-        "sha256": "bc53ba91a8f86aaa22bd2045d9caf0cf5d049462ee5ae51ed37603406346928e",
-        "preservedAt": "2026-09-12T06:57:17.714Z"
+        "sha256": "885ce029d74fd0f8e5205dd6bb4a53f84ff025f92b4cbf0fadc143d29bc955fb",
+        "preservedAt": "2026-09-12T08:02:26.664Z"
       },
-      "evidenceHash": "bc53ba91a8f86aaa22bd2045d9caf0cf5d049462ee5ae51ed37603406346928e",
+      "evidenceHash": "885ce029d74fd0f8e5205dd6bb4a53f84ff025f92b4cbf0fadc143d29bc955fb",
       "timeline": [
         {
-          "timestamp": "2026-09-12T06:57:17.714Z",
+          "timestamp": "2026-09-12T08:02:26.664Z",
           "action": "INCIDENT_CREATED",
           "actor": "SIEM Correlation Rule [RULE_SUSPICIOUS_EXEC_004]",
           "note": "Incident automatically flagged and correlated: Suspicious Process Execution (powershell.exe) with C2 Connection"
         }
       ],
-      "createdAt": "2026-09-12T06:57:17.714Z",
-      "updatedAt": "2026-09-12T06:57:17.714Z",
+      "createdAt": "2026-09-12T08:02:26.664Z",
+      "updatedAt": "2026-09-12T08:02:26.664Z",
       "ruleId": "RULE_SUSPICIOUS_EXEC_004"
     },
     {
-      "id": "INC-3771170",
+      "id": "INC-4666254",
       "title": "Potential Successful Exploit (SQL Injection) against /api/v1/users?id=1%27%20UNION%20SELECT%20null,password%20FROM%20users--",
       "severity": "CRITICAL",
       "category": "APPLICATION_EXPLOIT",
@@ -147,274 +116,28 @@
           "endpoint": "/api/v1/users?id=1%27%20UNION%20SELECT%20null,password%20FROM%20users--",
           "payloadPattern": "/api/v1/users?id=1%27%20UNION%20SELECT%20null,password%20FROM%20users--",
           "responseStatus": 200,
-          "detectedAt": "2026-09-12T06:57:17.711Z"
+          "detectedAt": "2026-09-12T08:02:26.662Z"
         },
-        "sha256": "a39a1798b22289648a6f8e29ce6c34acd68c4f2a52a6efad526b42c37ea76d55",
-        "preservedAt": "2026-09-12T06:57:17.712Z"
+        "sha256": "57d7be6f9776aacbf206e9d836a30690f35b353700e3f37def3945cd246dcd9d",
+        "preservedAt": "2026-09-12T08:02:26.662Z"
       },
-      "evidenceHash": "a39a1798b22289648a6f8e29ce6c34acd68c4f2a52a6efad526b42c37ea76d55",
+      "evidenceHash": "57d7be6f9776aacbf206e9d836a30690f35b353700e3f37def3945cd246dcd9d",
       "timeline": [
         {
-          "timestamp": "2026-09-12T06:57:17.712Z",
+          "timestamp": "2026-09-12T08:02:26.662Z",
           "action": "INCIDENT_CREATED",
           "actor": "SIEM Correlation Rule [RULE_SQLI_SUCCESS_002]",
           "note": "Incident automatically flagged and correlated: Potential Successful Exploit (SQL Injection) against /api/v1/users?id=1%27%20UNION%20SELECT%20null,password%20FROM%20users--"
         }
       ],
-      "createdAt": "2026-09-12T06:57:17.712Z",
-      "updatedAt": "2026-09-12T06:57:17.712Z",
+      "createdAt": "2026-09-12T08:02:26.662Z",
+      "updatedAt": "2026-09-12T08:02:26.662Z",
       "ruleId": "RULE_SQLI_SUCCESS_002"
-    },
-    {
-      "id": "INC-0450625",
-      "title": "Verification Suite Test Incident",
-      "severity": "HIGH",
-      "category": "C2 Activity",
-      "status": "NEW",
-      "assignee": "Unassigned",
-      "relatedIps": [],
-      "relatedAlerts": [],
-      "mitreTechniques": [],
-      "evidence": {
-        "payload": [
-          {
-            "type": "NETWORK_FLOW",
-            "srcIp": "198.51.100.40",
-            "destPort": 443
-          },
-          {
-            "type": "IOC_MATCH",
-            "indicator": "malicious-c2.xyz",
-            "threat": "AgentTesla"
-          }
-        ],
-        "sha256": "33a3c337c57197c8accfc549817a1f8f4cd14119cef1a61180dfc5bf45acf3ac",
-        "preservedAt": "2026-09-12T06:55:04.506Z"
-      },
-      "timeline": [
-        {
-          "timestamp": "2026-09-12T06:55:04.506Z",
-          "action": "INCIDENT_CREATED",
-          "actor": "correlation-engine",
-          "note": "Incident automatically flagged and correlated: Verification Suite Test Incident"
-        }
-      ],
-      "createdAt": "2026-09-12T06:55:04.506Z",
-      "updatedAt": "2026-09-12T06:55:04.506Z"
-    },
-    {
-      "id": "INC-2753868",
-      "title": "Brute Force Authentication Campaign from 192.0.2.15",
-      "severity": "HIGH",
-      "category": "BRUTE_FORCE",
-      "status": "NEW",
-      "description": "Correlated 5 failed login attempts within 2-minute window targeting account 'victim@sentinel.ai'.",
-      "assignee": "Unassigned",
-      "relatedIps": [
-        "192.0.2.15"
-      ],
-      "relatedAlerts": [
-        "Auth failure #1 at 2026-09-12T06:43:47.537Z",
-        "Auth failure #2 at 2026-09-12T06:43:47.537Z",
-        "Auth failure #3 at 2026-09-12T06:43:47.537Z",
-        "Auth failure #4 at 2026-09-12T06:43:47.537Z",
-        "Auth failure #5 at 2026-09-12T06:43:47.537Z"
-      ],
-      "mitreTechniques": [
-        "T1110.001 - Password Guessing",
-        "T1110.003 - Password Spraying"
-      ],
-      "evidence": {
-        "payload": {
-          "attackerIp": "192.0.2.15",
-          "totalAttempts": 5,
-          "targetAccounts": [
-            "victim@sentinel.ai"
-          ],
-          "firstAttempt": "2026-09-12T06:43:47.537Z",
-          "lastAttempt": "2026-09-12T06:43:47.537Z",
-          "userAgent": "Mozilla/5.0 Hydrav2"
-        },
-        "sha256": "a12ec21b645191208c1c006df73d0a1e13706b19fec6b793e8631a7b7453f5d7",
-        "preservedAt": "2026-09-12T06:43:47.538Z"
-      },
-      "timeline": [
-        {
-          "timestamp": "2026-09-12T06:43:47.538Z",
-          "action": "INCIDENT_CREATED",
-          "actor": "SIEM Correlation Rule [RULE_BRUTE_FORCE_001]",
-          "note": "Incident automatically flagged and correlated: Brute Force Authentication Campaign from 192.0.2.15"
-        }
-      ],
-      "createdAt": "2026-09-12T06:43:47.538Z",
-      "updatedAt": "2026-09-12T06:43:47.538Z"
-    },
-    {
-      "id": "INC-2753246",
-      "title": "Test Unauthorized Exfiltration Probe",
-      "severity": "CRITICAL",
-      "category": "DATA_EXFIL",
-      "status": "INVESTIGATING",
-      "description": "Suspicious outbound DNS payload transmission detected.",
-      "assignee": "Unassigned",
-      "relatedIps": [
-        "198.51.100.88"
-      ],
-      "relatedAlerts": [],
-      "mitreTechniques": [],
-      "evidence": {
-        "payload": {
-          "query": "exfil.attacker-c2.com",
-          "bytes": 4096
-        },
-        "sha256": "82b342a22b6185047e1786edeee360afadbeb0cecbbbd5f5dcf4a813a842f053",
-        "preservedAt": "2026-09-12T06:43:47.533Z"
-      },
-      "timeline": [
-        {
-          "timestamp": "2026-09-12T06:43:47.533Z",
-          "action": "INCIDENT_CREATED",
-          "actor": "correlation-engine",
-          "note": "Incident automatically flagged and correlated: Test Unauthorized Exfiltration Probe"
-        },
-        {
-          "timestamp": "2026-09-12T06:43:47.964Z",
-          "action": "STATUS_CHANGE",
-          "actor": "Senior Analyst (senior_analyst)",
-          "note": "Analyst assigned"
-        }
-      ],
-      "createdAt": "2026-09-12T06:43:47.533Z",
-      "updatedAt": "2026-09-12T06:43:47.964Z"
-    },
-    {
-      "id": "INC-1047438",
-      "title": "Test Unauthorized Exfiltration Probe",
-      "severity": "CRITICAL",
-      "category": "DATA_EXFIL",
-      "status": "INVESTIGATING",
-      "description": "Suspicious outbound DNS payload transmission detected.",
-      "assignee": "Unassigned",
-      "relatedIps": [
-        "198.51.100.88"
-      ],
-      "relatedAlerts": [],
-      "mitreTechniques": [],
-      "evidence": {
-        "payload": {
-          "query": "exfil.attacker-c2.com",
-          "bytes": 4096
-        },
-        "sha256": "82b342a22b6185047e1786edeee360afadbeb0cecbbbd5f5dcf4a813a842f053",
-        "preservedAt": "2026-09-12T06:43:30.475Z"
-      },
-      "timeline": [
-        {
-          "timestamp": "2026-09-12T06:43:30.475Z",
-          "action": "INCIDENT_CREATED",
-          "actor": "correlation-engine",
-          "note": "Incident automatically flagged and correlated: Test Unauthorized Exfiltration Probe"
-        },
-        {
-          "timestamp": "2026-09-12T06:43:30.903Z",
-          "action": "STATUS_CHANGE",
-          "actor": "Senior Analyst (senior_analyst)",
-          "note": "Analyst assigned"
-        }
-      ],
-      "createdAt": "2026-09-12T06:43:30.475Z",
-      "updatedAt": "2026-09-12T06:43:30.903Z"
-    },
-    {
-      "id": "INC-7701767",
-      "title": "Brute Force Authentication Campaign from 192.0.2.145",
-      "severity": "HIGH",
-      "category": "BRUTE_FORCE",
-      "status": "NEW",
-      "description": "Correlated 5 failed login attempts within 2-minute window targeting account 'victim@sentinel.ai'.",
-      "assignee": "Unassigned",
-      "relatedIps": [
-        "192.0.2.145"
-      ],
-      "relatedAlerts": [
-        "Auth failure #1 at 2026-09-12T06:42:57.017Z",
-        "Auth failure #2 at 2026-09-12T06:42:57.017Z",
-        "Auth failure #3 at 2026-09-12T06:42:57.017Z",
-        "Auth failure #4 at 2026-09-12T06:42:57.017Z",
-        "Auth failure #5 at 2026-09-12T06:42:57.017Z"
-      ],
-      "mitreTechniques": [
-        "T1110.001 - Password Guessing",
-        "T1110.003 - Password Spraying"
-      ],
-      "evidence": {
-        "payload": {
-          "attackerIp": "192.0.2.145",
-          "totalAttempts": 5,
-          "targetAccounts": [
-            "victim@sentinel.ai"
-          ],
-          "firstAttempt": "2026-09-12T06:42:57.017Z",
-          "lastAttempt": "2026-09-12T06:42:57.017Z",
-          "userAgent": "Mozilla/5.0 Hydrav2"
-        },
-        "sha256": "6341f3067b8fbdcce60b8ee394a79656ea3e2c88fe1b96921abfcf51a5c46b4a",
-        "preservedAt": "2026-09-12T06:42:57.018Z"
-      },
-      "timeline": [
-        {
-          "timestamp": "2026-09-12T06:42:57.018Z",
-          "action": "INCIDENT_CREATED",
-          "actor": "SIEM Correlation Rule [RULE_BRUTE_FORCE_001]",
-          "note": "Incident automatically flagged and correlated: Brute Force Authentication Campaign from 192.0.2.145"
-        }
-      ],
-      "createdAt": "2026-09-12T06:42:57.018Z",
-      "updatedAt": "2026-09-12T06:42:57.018Z"
-    },
-    {
-      "id": "INC-7700811",
-      "title": "Test Unauthorized Exfiltration Probe",
-      "severity": "CRITICAL",
-      "category": "DATA_EXFIL",
-      "status": "INVESTIGATING",
-      "description": "Suspicious outbound DNS payload transmission detected.",
-      "assignee": "Unassigned",
-      "relatedIps": [
-        "198.51.100.88"
-      ],
-      "relatedAlerts": [],
-      "mitreTechniques": [],
-      "evidence": {
-        "payload": {
-          "query": "exfil.attacker-c2.com",
-          "bytes": 4096
-        },
-        "sha256": "82b342a22b6185047e1786edeee360afadbeb0cecbbbd5f5dcf4a813a842f053",
-        "preservedAt": "2026-09-12T06:42:57.009Z"
-      },
-      "timeline": [
-        {
-          "timestamp": "2026-09-12T06:42:57.009Z",
-          "action": "INCIDENT_CREATED",
-          "actor": "correlation-engine",
-          "note": "Incident automatically flagged and correlated: Test Unauthorized Exfiltration Probe"
-        },
-        {
-          "timestamp": "2026-09-12T06:42:57.452Z",
-          "action": "STATUS_CHANGE",
-          "actor": "Senior Analyst (senior_analyst)",
-          "note": "Analyst assigned"
-        }
-      ],
-      "createdAt": "2026-09-12T06:42:57.009Z",
-      "updatedAt": "2026-09-12T06:42:57.452Z"
     }
   ],
   "auditLogs": [
     {
-      "id": "AUD-8691828E",
-      "timestamp": "2026-09-12T06:57:17.728Z",
+      "id": "AUDIT-146669-28",
       "actor": "AI Copilot",
       "actorRole": "autonomous_agent",
       "action": "AI_ACTION_APPROVED",
@@ -424,367 +147,29 @@
       "details": {
         "action": "BLOCK_IP",
         "reason": "Operator verified malicious C2"
-      }
+      },
+      "timestamp": "2026-09-12T08:02:26.669Z"
     },
     {
-      "id": "AUD-A01F3AD5",
-      "timestamp": "2026-09-12T06:57:17.722Z",
-      "actor": "Host isolated via SOC firewall",
-      "actorRole": "system",
-      "action": "INCIDENT_STATUS_CHANGE",
-      "target": "INC-3771653",
+      "id": "AUDIT-0001",
+      "actor": "system",
+      "actorRole": "SYSTEM",
+      "action": "SYSTEM_INITIALIZED",
+      "target": "SOC_CORE",
       "result": "SUCCESS",
       "sourceIp": "127.0.0.1",
+      "timestamp": "2026-09-12T00:00:00.000Z",
       "details": {
-        "oldStatus": "INVESTIGATING",
-        "newStatus": "CONTAINED",
-        "note": ""
-      }
-    },
-    {
-      "id": "AUD-EDDE54D2",
-      "timestamp": "2026-09-12T06:57:17.719Z",
-      "actor": "Analyst triage started",
-      "actorRole": "system",
-      "action": "INCIDENT_STATUS_CHANGE",
-      "target": "INC-3771653",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "oldStatus": "NEW",
-        "newStatus": "INVESTIGATING",
-        "note": ""
-      }
-    },
-    {
-      "id": "AUD-A8B7DF27",
-      "timestamp": "2026-09-12T06:57:17.717Z",
-      "actor": "correlation-engine",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-3771653",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Verification Suite Test Incident",
-        "severity": "HIGH",
-        "relatedIps": []
-      }
-    },
-    {
-      "id": "AUD-DCEE60FB",
-      "timestamp": "2026-09-12T06:57:17.715Z",
-      "actor": "SIEM Correlation Rule [RULE_SUSPICIOUS_EXEC_004]",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-3771427",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Suspicious Process Execution (powershell.exe) with C2 Connection",
-        "severity": "CRITICAL",
-        "relatedIps": [
-          "198.51.100.99"
-        ]
-      }
-    },
-    {
-      "id": "AUD-C5CFD7AF",
-      "timestamp": "2026-09-12T06:57:17.712Z",
-      "actor": "SIEM Correlation Rule [RULE_SQLI_SUCCESS_002]",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-3771170",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Potential Successful Exploit (SQL Injection) against /api/v1/users?id=1%27%20UNION%20SELECT%20null,password%20FROM%20users--",
-        "severity": "CRITICAL",
-        "relatedIps": [
-          "198.51.100.22"
-        ]
-      }
-    },
-    {
-      "id": "AUD-C5188D43",
-      "timestamp": "2026-09-12T06:55:04.513Z",
-      "actor": "AI Copilot",
-      "actorRole": "autonomous_agent",
-      "action": "AI_ACTION_APPROVED",
-      "target": "203.0.113.150",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "action": "BLOCK_IP",
-        "reason": "Operator verified malicious C2"
-      }
-    },
-    {
-      "id": "AUD-5182A136",
-      "timestamp": "2026-09-12T06:55:04.507Z",
-      "actor": "correlation-engine",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-0450625",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Verification Suite Test Incident",
-        "severity": "HIGH",
-        "relatedIps": []
-      }
-    },
-    {
-      "id": "AUD-473AFB66",
-      "timestamp": "2026-09-12T06:43:47.967Z",
-      "actor": "senior@sentinel.ai",
-      "actorRole": "senior_analyst",
-      "action": "INCIDENT_STATUS_CHANGE",
-      "target": "INC-2753246",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "status": "INVESTIGATING",
-        "note": "Analyst assigned"
-      }
-    },
-    {
-      "id": "AUD-96A90F0B",
-      "timestamp": "2026-09-12T06:43:47.966Z",
-      "actor": "Senior Analyst (senior_analyst)",
-      "actorRole": "system",
-      "action": "INCIDENT_STATUS_CHANGE",
-      "target": "INC-2753246",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "oldStatus": "NEW",
-        "newStatus": "INVESTIGATING",
-        "note": "Analyst assigned"
-      }
-    },
-    {
-      "id": "AUD-EACFB387",
-      "timestamp": "2026-09-12T06:43:47.957Z",
-      "actor": "senior@sentinel.ai",
-      "actorRole": "senior_analyst",
-      "action": "IP_BLOCKED",
-      "target": "10.0.0.1",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {}
-    },
-    {
-      "id": "AUD-BE94F5E6",
-      "timestamp": "2026-09-12T06:43:47.542Z",
-      "actor": "AI Copilot",
-      "actorRole": "autonomous_agent",
-      "action": "AI_ACTION_APPROVED",
-      "target": "203.0.113.77",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "action": "BLOCK_IP",
-        "reason": "AI recommendation confirmed"
-      }
-    },
-    {
-      "id": "AUD-FA034177",
-      "timestamp": "2026-09-12T06:43:47.538Z",
-      "actor": "SIEM Correlation Rule [RULE_BRUTE_FORCE_001]",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-2753868",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Brute Force Authentication Campaign from 192.0.2.15",
-        "severity": "HIGH",
-        "relatedIps": [
-          "192.0.2.15"
-        ]
-      }
-    },
-    {
-      "id": "AUD-E9357444",
-      "timestamp": "2026-09-12T06:43:47.535Z",
-      "actor": "correlation-engine",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-2753246",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Test Unauthorized Exfiltration Probe",
-        "severity": "CRITICAL",
-        "relatedIps": [
-          "198.51.100.88"
-        ]
-      }
-    },
-    {
-      "id": "AUD-A974A6B1",
-      "timestamp": "2026-09-12T06:43:30.904Z",
-      "actor": "senior@sentinel.ai",
-      "actorRole": "senior_analyst",
-      "action": "INCIDENT_STATUS_CHANGE",
-      "target": "INC-1047438",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "status": "INVESTIGATING",
-        "note": "Analyst assigned"
-      }
-    },
-    {
-      "id": "AUD-642D817D",
-      "timestamp": "2026-09-12T06:43:30.904Z",
-      "actor": "Senior Analyst (senior_analyst)",
-      "actorRole": "system",
-      "action": "INCIDENT_STATUS_CHANGE",
-      "target": "INC-1047438",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "oldStatus": "NEW",
-        "newStatus": "INVESTIGATING",
-        "note": "Analyst assigned"
-      }
-    },
-    {
-      "id": "AUD-1CCBE0C7",
-      "timestamp": "2026-09-12T06:43:30.896Z",
-      "actor": "senior@sentinel.ai",
-      "actorRole": "senior_analyst",
-      "action": "IP_BLOCKED",
-      "target": "10.0.0.1",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {}
-    },
-    {
-      "id": "AUD-9E3A1A76",
-      "timestamp": "2026-09-12T06:43:30.481Z",
-      "actor": "AI Copilot",
-      "actorRole": "autonomous_agent",
-      "action": "AI_ACTION_APPROVED",
-      "target": "203.0.113.77",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "action": "BLOCK_IP",
-        "reason": "AI recommendation confirmed"
-      }
-    },
-    {
-      "id": "AUD-293F29DE",
-      "timestamp": "2026-09-12T06:43:30.476Z",
-      "actor": "correlation-engine",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-1047438",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Test Unauthorized Exfiltration Probe",
-        "severity": "CRITICAL",
-        "relatedIps": [
-          "198.51.100.88"
-        ]
-      }
-    },
-    {
-      "id": "AUD-49DEEF65",
-      "timestamp": "2026-09-12T06:42:57.464Z",
-      "actor": "senior@sentinel.ai",
-      "actorRole": "senior_analyst",
-      "action": "INCIDENT_STATUS_CHANGE",
-      "target": "INC-7700811",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "status": "INVESTIGATING",
-        "note": "Analyst assigned"
-      }
-    },
-    {
-      "id": "AUD-79D15E4A",
-      "timestamp": "2026-09-12T06:42:57.454Z",
-      "actor": "Senior Analyst (senior_analyst)",
-      "actorRole": "system",
-      "action": "INCIDENT_STATUS_CHANGE",
-      "target": "INC-7700811",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "oldStatus": "NEW",
-        "newStatus": "INVESTIGATING",
-        "note": "Analyst assigned"
-      }
-    },
-    {
-      "id": "AUD-DB3FDA33",
-      "timestamp": "2026-09-12T06:42:57.443Z",
-      "actor": "senior@sentinel.ai",
-      "actorRole": "senior_analyst",
-      "action": "IP_BLOCKED",
-      "target": "10.0.0.1",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {}
-    },
-    {
-      "id": "AUD-96B374A5",
-      "timestamp": "2026-09-12T06:42:57.026Z",
-      "actor": "AI Copilot",
-      "actorRole": "autonomous_agent",
-      "action": "AI_ACTION_APPROVED",
-      "target": "203.0.113.77",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "action": "BLOCK_IP",
-        "reason": "AI recommendation confirmed"
-      }
-    },
-    {
-      "id": "AUD-DF883737",
-      "timestamp": "2026-09-12T06:42:57.020Z",
-      "actor": "SIEM Correlation Rule [RULE_BRUTE_FORCE_001]",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-7701767",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Brute Force Authentication Campaign from 192.0.2.145",
-        "severity": "HIGH",
-        "relatedIps": [
-          "192.0.2.145"
-        ]
-      }
-    },
-    {
-      "id": "AUD-747EFB72",
-      "timestamp": "2026-09-12T06:42:57.011Z",
-      "actor": "correlation-engine",
-      "actorRole": "system",
-      "action": "INCIDENT_CREATED",
-      "target": "INC-7700811",
-      "result": "SUCCESS",
-      "sourceIp": "127.0.0.1",
-      "details": {
-        "title": "Test Unauthorized Exfiltration Probe",
-        "severity": "CRITICAL",
-        "relatedIps": [
-          "198.51.100.88"
-        ]
+        "status": "SECURE_BASELINE",
+        "description": "Cyber Sentinel Security Operations Center storage baseline initialized."
       }
     }
   ],
+  "scans": [],
   "lastScanResult": null,
   "lastLogAnalysis": null,
   "lastProtectionScan": null,
   "lastSandboxResult": null,
-  "lastSystemMetrics": null
+  "lastSystemMetrics": null,
+  "lastUpdated": "2026-09-12T00:00:00.000Z"
 }

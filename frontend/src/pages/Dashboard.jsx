@@ -4,6 +4,7 @@ import {
   CartesianGrid, Tooltip, BarChart, Bar,
 } from 'recharts';
 import { useRealTime } from '../context/RealTimeContext';
+import { useAuth } from '../context/AuthContext';
 
 /* ── Custom Chart Tooltip ── */
 const CustomTooltip = ({ active, payload, label }) => {
@@ -476,6 +477,7 @@ function ThreatRadar({ attacks = [], onSelectAttack, blockIp, triggerToast }) {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const {
     connected, connectionState, latencyMs, systemMetrics, attackFeed, timeline,
     linkedDevices, systemFindings, criticalAlert,
@@ -562,25 +564,25 @@ export default function Dashboard() {
       generatedAt: new Date().toISOString(),
       evaluationScope: 'Capstone Defense Verification & Production Assessment',
       securityEngineer: {
-        name: 'Ayush Dhiman',
-        role: 'Lead Security Operations Architect',
+        name: user?.name || 'Authorized Sentinel Operator',
+        role: user?.role ? `SECURITY ROLE: ${String(user.role).toUpperCase()}` : 'Lead Security Operations Architect',
         clearance: 'LEVEL 4 SECURITY CLEARANCE'
       },
       systemHealth: {
-        host: systemMetrics?.hostname || 'prod-us-central1-scc',
-        cpuUsage: `${systemMetrics?.cpuUsage || 24}%`,
-        ramUsage: `${systemMetrics?.memoryUsage || 48}%`,
-        uptime: systemMetrics?.uptimeDays ? `${systemMetrics.uptimeDays} days` : '14 days',
-        status: connected ? 'ONLINE (WSS SYNCHRONIZED)' : connectionState === 'connecting' ? 'LINKING TELEMETRY' : 'AUTONOMOUS ACTIVE',
+        host: systemMetrics?.hostname || 'LOCAL-NODE',
+        cpuUsage: systemMetrics?.cpuUsage != null ? `${systemMetrics.cpuUsage}%` : '—',
+        ramUsage: systemMetrics?.memoryUsage != null ? `${systemMetrics.memoryUsage}%` : '—',
+        uptime: systemMetrics?.uptimeDays != null ? `${systemMetrics.uptimeDays} days` : '—',
+        status: connected ? 'ONLINE (WSS SYNCHRONIZED)' : connectionState === 'connecting' ? 'LINKING TELEMETRY' : 'STANDBY',
         latencyMs: `${latencyMs}ms`
       },
       threatPosture: {
-        threatScore: systemMetrics?.threatScore || 42,
-        threatLevel: (systemMetrics?.threatScore || 42) > 70 ? 'CRITICAL' : (systemMetrics?.threatScore || 42) > 40 ? 'MODERATE' : 'ELEVATED',
+        threatScore: systemMetrics?.threatScore ?? 0,
+        threatLevel: systemMetrics?.riskLevel || ((systemMetrics?.threatScore || 0) > 70 ? 'CRITICAL' : (systemMetrics?.threatScore || 0) > 40 ? 'MODERATE' : 'GUARDED'),
         attacksPerMinute,
         cumulativeAttacksLogged: liveAttackCount,
         threatsMitigatedBlocked: blockedCount,
-        activeIocPoolSize: intelStatus?.iocCount || 250,
+        activeIocPoolSize: intelStatus?.iocCount || 0,
       },
       realTimeAttackVectors: attackFeed.slice(0, 20).map(a => ({
         timestamp: a.timestamp,

@@ -1,118 +1,14 @@
 {
-  "admin@sentinel.ai": {
-    "name": "Admin User Updated",
-    "email": "admin@sentinel.ai",
-    "passwordHash": "$2a$10$mYVuxfnyPueBqLReQw/J5uengazYhZ/Lj3yU.T7.3.nc7e4LOpDIe",
-    "role": "administrator",
-    "createdAt": "2026-07-11T19:21:29.038Z",
+  "admin@sentinel.local": {
+    "id": "USR-0001",
+    "name": "SOC Lead Administrator",
+    "email": "admin@sentinel.local",
+    "passwordHash": "$2a$12$R9h/cIPz0gi.47Rzd4nW..4F8mB.8jE/7iEa8iFpE9gK9pZk1xYxW",
+    "role": "ADMIN",
+    "status": "active",
+    "mfaEnabled": false,
+    "createdAt": "2026-09-12T00:00:00.000Z",
     "profilePic": null,
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "gamma@sentinel.ai": {
-    "name": "Operator Gamma",
-    "email": "gamma@sentinel.ai",
-    "passwordHash": "$2a$12$nRaxwLkORB4JatDzlvLWGO.R2gHO9GwM3HjdsqMzWkBt0a7FgO9I2",
-    "role": "analyst",
-    "createdAt": "2026-07-11T19:23:03.400Z",
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "ayushdhiman708@gmail.com": {
-    "name": "Ayush Dhiman ",
-    "email": "ayushdhiman708@gmail.com",
-    "passwordHash": "$2a$12$qgujBbSa27Y3424GkyEsV.qEHEwOPWymOxbjP5Xbfh.ksIGZzVape",
-    "role": "analyst",
-    "createdAt": "2026-07-11T19:25:57.114Z",
-    "profilePic": null,
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "test_operator@sentinel.ai": {
-    "name": "Test Operator",
-    "email": "test_operator@sentinel.ai",
-    "phone": "+1234567899",
-    "passwordHash": "$2a$12$mKs0guZBXZ4NgHk1DVSIducsmA4CJTsL3ysHmfj5xko0Q2NPBMrnq",
-    "role": "analyst",
-    "profilePic": null,
-    "createdAt": "2026-07-17T05:55:15.093Z",
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "testuser@example.com": {
-    "name": "testuser",
-    "email": "testuser@example.com",
-    "phone": "",
-    "passwordHash": "$2a$12$KY.34padXY.TF6EPk9g5OOmMYJbV3nDsaQ1bZt6YOQzvphpxMtXH6",
-    "role": "analyst",
-    "profilePic": null,
-    "createdAt": "2026-08-30T10:59:10.009Z",
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "test@test.com": {
-    "name": "Test Operator",
-    "email": "test@test.com",
-    "phone": "+919876543210",
-    "passwordHash": "$2a$12$i0l8tou6wSqq0MkeHaL/rOK.8tNt3Fl/yuiiuFx1gx1gaGbDTAUL6",
-    "role": "analyst",
-    "profilePic": null,
-    "createdAt": "2026-08-31T15:52:36.826Z",
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "operator_1788193087879@sentinel.ai": {
-    "name": "Alpha Tester",
-    "email": "operator_1788193087879@sentinel.ai",
-    "phone": "+919876576868",
-    "passwordHash": "$2a$12$BatHs6luRm0egzyTSqgwyOR8ehpV9uvKtsVqGj1og5SDzNuvNQUrK",
-    "role": "analyst",
-    "profilePic": null,
-    "createdAt": "2026-08-31T16:18:08.551Z",
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "operator_1788193120253@sentinel.ai": {
-    "name": "Alpha Tester",
-    "email": "operator_1788193120253@sentinel.ai",
-    "phone": "+919876513543",
-    "passwordHash": "$2a$12$Tf3LPm/8zihDoYFcAgHNEuiF.8fsDh9/6jaAC3vef/1mLYov/0c7i",
-    "role": "analyst",
-    "profilePic": null,
-    "createdAt": "2026-08-31T16:18:40.756Z",
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "operator_1788193217230@sentinel.ai": {
-    "name": "Alpha Tester",
-    "email": "operator_1788193217230@sentinel.ai",
-    "phone": "+919876598954",
-    "passwordHash": "$2a$12$dTrzMoKTbeiLBra.icsHN.UE0GMb5MMlpG8t6/FAxzQ8Xa9glR0n2",
-    "role": "analyst",
-    "profilePic": null,
-    "createdAt": "2026-08-31T16:20:17.771Z",
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "test_no_mfa@test.com": {
-    "name": "Test Operator",
-    "email": "test_no_mfa@test.com",
-    "phone": "+19876543210",
-    "passwordHash": "$2a$12$G8HrJUKyUv9yMrHCZCtF2OwwiRZLA5L3Do3gLQ79zX9HeDSFSdlAK",
-    "role": "analyst",
-    "profilePic": null,
-    "createdAt": "2026-08-31T16:46:34.557Z",
-    "isEmailVerified": true,
-    "isPhoneVerified": true
-  },
-  "no_otp@test.com": {
-    "name": "NoOTP",
-    "email": "no_otp@test.com",
-    "phone": "",
-    "passwordHash": "$2a$12$7HoO9nYMZsFbx9Vbq5wk5.K4p6otpZ5GaCp5VkG/IX1ATOdApqUmG",
-    "role": "analyst",
-    "profilePic": null,
-    "createdAt": "2026-08-31T17:09:39.911Z",
     "isEmailVerified": true,
     "isPhoneVerified": true
   }

@@ -8,6 +8,9 @@ const { generateSecret, generateTOTP, verifyTOTP, generateOtpAuthUri } = require
 const { logSecurityEvent, AuditActions } = require('../utils/auditLogger');
 const { recordFailedLogin } = require('../utils/correlationEngine');
 
+const { getJwtSecret } = require('../config/jwt');
+const { ROLES } = require('../constants/roles');
+
 const router = express.Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,7 +48,7 @@ router.post('/register', async (req, res) => {
       email: cleanEmail,
       phone: phone ? phone.trim() : '',
       passwordHash,
-      role: 'analyst',
+      role: ROLES.ANALYST,
       profilePic: null,
       createdAt: new Date().toISOString(),
       isEmailVerified: true,
@@ -54,7 +57,7 @@ router.post('/register', async (req, res) => {
 
     const token = jwt.sign(
       { email: user.email, name: user.name, role: user.role },
-      process.env.JWT_SECRET || 'cyber-sentinel-prod-secret-fallback-key-1234567890',
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRES_IN || '2h' }
     );
 
@@ -77,8 +80,9 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// In-memory store for active session refresh tokens. Keys: token string -> { email, expiresAt }
+// In-memory store for active session refresh tokens (SHA-256 hashed). Keys: hashed token string -> { email, expiresAt }
 const refreshTokens = new Map();
+const hashToken = (token) => crypto.createHash('sha256').update(String(token)).digest('hex');
 
 router.post('/login', async (req, res) => {
   try {
@@ -135,7 +139,7 @@ router.post('/login', async (req, res) => {
       // Issue short-lived, single-use MFA challenge ticket (valid for 5 minutes)
       const mfaTicket = jwt.sign(
         { email: user.email, purpose: 'mfa_challenge' },
-        process.env.JWT_SECRET || 'cyber-sentinel-prod-secret-fallback-key-1234567890',
+        getJwtSecret(),
         { expiresIn: '5m' }
       );
 
@@ -151,13 +155,13 @@ router.post('/login', async (req, res) => {
     // 5. Issue short-lived access token (1h)
     const token = jwt.sign(
       { email: user.email, name: user.name, role: user.role },
-      process.env.JWT_SECRET || 'cyber-sentinel-prod-secret-fallback-key-1234567890',
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
     );
 
-    // 6. Issue cryptographically secure rotating refresh token (7 days)
+    // 6. Issue cryptographically secure rotating refresh token (7 days), stored hashed
     const refreshToken = crypto.randomBytes(40).toString('hex');
-    refreshTokens.set(refreshToken, {
+    refreshTokens.set(hashToken(refreshToken), {
       email: user.email,
       expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
     });
@@ -198,33 +202,34 @@ router.post('/refresh', (req, res) => {
       return res.status(401).json({ error: 'Refresh token is required.' });
     }
 
-    const session = refreshTokens.get(refreshToken);
+    const tokenHash = hashToken(refreshToken);
+    const session = refreshTokens.get(tokenHash);
     if (!session) {
       return res.status(401).json({ error: 'Invalid or revoked refresh token.' });
     }
 
     if (Date.now() > session.expiresAt) {
-      refreshTokens.delete(refreshToken);
+      refreshTokens.delete(tokenHash);
       return res.status(401).json({ error: 'Refresh token expired. Please log in again.' });
     }
 
     const user = userStore.findByEmail(session.email);
     if (!user || (user.status && user.status !== 'active')) {
-      refreshTokens.delete(refreshToken);
+      refreshTokens.delete(tokenHash);
       return res.status(401).json({ error: 'Operator account is inactive or not found.' });
     }
 
     // Token rotation: delete old refresh token, generate a new one
-    refreshTokens.delete(refreshToken);
+    refreshTokens.delete(tokenHash);
     const newRefreshToken = crypto.randomBytes(40).toString('hex');
-    refreshTokens.set(newRefreshToken, {
+    refreshTokens.set(hashToken(newRefreshToken), {
       email: user.email,
       expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
     });
 
     const token = jwt.sign(
       { email: user.email, name: user.name, role: user.role },
-      process.env.JWT_SECRET || 'cyber-sentinel-prod-secret-fallback-key-1234567890',
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
     );
 
@@ -254,10 +259,7 @@ router.post('/verify-mfa', async (req, res) => {
     // Cryptographically verify the challenge ticket
     let ticketPayload;
     try {
-      ticketPayload = jwt.verify(
-        mfaTicket,
-        process.env.JWT_SECRET || 'cyber-sentinel-prod-secret-fallback-key-1234567890'
-      );
+      ticketPayload = jwt.verify(mfaTicket, getJwtSecret());
     } catch (err) {
       return res.status(401).json({ error: 'MFA challenge ticket has expired or is invalid. Please log in again.' });
     }
@@ -271,8 +273,11 @@ router.post('/verify-mfa', async (req, res) => {
       return res.status(401).json({ error: 'Operator account not found or suspended.' });
     }
 
-    // Verify RFC 6238 TOTP against user secret (or default demo secret)
-    const secret = user.totpSecret || user.mfaSecret || 'JBSWY3DPEHPK3PXP';
+    // Verify RFC 6238 TOTP against enrolled user secret
+    const secret = user.totpSecret || user.mfaSecret;
+    if (!secret) {
+      return res.status(400).json({ error: 'MFA is active but no authenticator secret is configured. Please configure MFA in profile.' });
+    }
     const isTotpValid = verifyTOTP(inputCode, secret);
 
     if (!isTotpValid) {
@@ -282,12 +287,12 @@ router.post('/verify-mfa', async (req, res) => {
     // MFA successfully verified: Issue full 1h access JWT + 7d rotating refresh token
     const token = jwt.sign(
       { email: user.email, name: user.name, role: user.role },
-      process.env.JWT_SECRET || 'cyber-sentinel-prod-secret-fallback-key-1234567890',
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
     );
 
     const refreshToken = crypto.randomBytes(40).toString('hex');
-    refreshTokens.set(refreshToken, {
+    refreshTokens.set(hashToken(refreshToken), {
       email: user.email,
       expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
     });
@@ -316,7 +321,7 @@ router.post('/logout', async (req, res) => {
   try {
     const { refreshToken } = req.body || {};
     if (refreshToken) {
-      refreshTokens.delete(refreshToken);
+      refreshTokens.delete(hashToken(refreshToken));
     }
     console.log(`[Server] Secure session termination logged.`);
     return res.json({ message: 'Session logged out successfully' });
@@ -387,7 +392,7 @@ router.put('/profile', requireAuth, async (req, res) => {
 
     const token = jwt.sign(
       { email: user.email, name: user.name, role: user.role },
-      process.env.JWT_SECRET || 'cyber-sentinel-prod-secret-fallback-key-1234567890',
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRES_IN || '2h' }
     );
 

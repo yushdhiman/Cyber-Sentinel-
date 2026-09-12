@@ -3,7 +3,7 @@ services:
     name: Cyber-Sentinel-backend
     env: node
     plan: free
-    buildCommand: npm install --include=dev && npm run build
+    buildCommand: npm ci && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -11,11 +11,18 @@ services:
       - key: PORT
         value: 10000
       - key: JWT_SECRET
-        value: change_this_to_a_long_random_secret
+        sync: false
       - key: JWT_EXPIRES_IN
-        value: 2h
+        value: 15m
       - key: CORS_ORIGIN
-        value: "*"
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: INITIAL_ADMIN_EMAIL
+        sync: false
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
-

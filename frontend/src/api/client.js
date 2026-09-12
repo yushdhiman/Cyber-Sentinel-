@@ -2,9 +2,6 @@ import axios from 'axios';
 
 const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-    return 'https://cyber-sentinel-7xfn.onrender.com/api';
-  }
   return '/api';
 };
 

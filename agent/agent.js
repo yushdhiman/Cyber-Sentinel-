@@ -138,8 +138,10 @@ function collectHostTelemetry() {
   };
 }
 
+const DEVICE_TOKEN = process.env.SENTINEL_DEVICE_TOKEN || process.env.DEVICE_TOKEN || '';
+
 // HTTP POST helper
-function postJson(endpoint, data, token = '') {
+function postJson(endpoint, data, token = '', customHeaders = {}) {
   return new Promise((resolve, reject) => {
     const url = new URL(endpoint, SERVER_URL);
     const isHttps = url.protocol === 'https:';
@@ -148,8 +150,14 @@ function postJson(endpoint, data, token = '') {
 
     const headers = {
       'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(bodyString)
+      'Content-Length': Buffer.byteLength(bodyString),
+      'X-Device-Id': DEVICE_ID,
+      ...customHeaders
     };
+
+    if (DEVICE_TOKEN) {
+      headers['X-Device-Token'] = DEVICE_TOKEN;
+    }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -188,18 +196,20 @@ let activeAuthToken = API_TOKEN;
 async function ensureAuthenticated() {
   if (activeAuthToken) return activeAuthToken;
 
-  const email = process.env.SENTINEL_EMAIL || 'admin@sentinel.local';
-  const password = process.env.SENTINEL_PASSWORD || 'Sentinel#Admin2026!';
+  const email = process.env.SENTINEL_EMAIL;
+  const password = process.env.SENTINEL_PASSWORD;
 
-  try {
-    const res = await postJson('/api/auth/login', { email, password });
-    if (res.statusCode === 200 && res.body.token) {
-      activeAuthToken = res.body.token;
-      console.log(`[Agent] Successfully authenticated as '${email}'`);
-      return activeAuthToken;
+  if (email && password) {
+    try {
+      const res = await postJson('/api/auth/login', { email, password });
+      if (res.statusCode === 200 && res.body?.token) {
+        activeAuthToken = res.body.token;
+        console.log(`[Agent] Successfully authenticated as '${email}'`);
+        return activeAuthToken;
+      }
+    } catch (err) {
+      console.warn(`[Agent] Auth login failed (${err.message}). Using device token headers.`);
     }
-  } catch (err) {
-    console.warn(`[Agent] Auth handshake failed (${err.message}). Telemetry will attempt ingestion.`);
   }
   return '';
 }

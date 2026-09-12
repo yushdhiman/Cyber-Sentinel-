@@ -111,9 +111,16 @@ function startRealtimeEngine(io) {
 
     socket.on('custom:ping', (cb) => { if (typeof cb === 'function') cb(); });
 
+const { ROLES, normalizeRole } = require('../constants/roles');
+
     socket.on('attack:block_ip', (data) => {
+      const userRole = normalizeRole(socket.user?.role);
+      if (!socket.user || ![ROLES.ADMIN, ROLES.SENIOR_ANALYST, ROLES.ANALYST].includes(userRole)) {
+        socket.emit('security:unauthorized', { error: 'Containment action denied: requires authenticated analyst or admin privileges.' });
+        return;
+      }
       if (data?.ip) {
-        storeBlockIp(data.ip, 'Operator real-time containment', 'operator');
+        storeBlockIp(data.ip, `Operator real-time containment (${socket.user?.email || 'authenticated'})`, socket.user?.email || 'operator');
         attackHistory.forEach(a => {
           if (a.sourceIp === data.ip && !a.blocked) {
             a.blocked = true;
@@ -126,6 +133,11 @@ function startRealtimeEngine(io) {
     });
 
     socket.on('attack:simulate', async () => {
+      const userRole = normalizeRole(socket.user?.role);
+      if (!socket.user || ![ROLES.ADMIN, ROLES.SENIOR_ANALYST, ROLES.ANALYST].includes(userRole)) {
+        socket.emit('security:unauthorized', { error: 'Simulation scan denied: requires authenticated analyst or admin privileges.' });
+        return;
+      }
       // On simulate: immediately run a fresh network scan
       try {
         const pool = require('./liveThreatFetcher').liveThreatPool || [];

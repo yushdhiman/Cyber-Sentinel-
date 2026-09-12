@@ -49,15 +49,26 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 };
 
-if (!process.env.JWT_SECRET) {
-  console.warn('[Server] WARNING: JWT_SECRET is not set in environment. Using secure fallback secret.');
-  process.env.JWT_SECRET = 'cyber-sentinel-prod-secret-fallback-key-1234567890';
-}
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+
+const { getJwtSecret } = require('./config/jwt');
+// Strictly validates JWT_SECRET (throws in production if missing)
+getJwtSecret();
+
+app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
+
+// Assign unique X-Request-ID header to every inbound request for distributed audit tracing
+app.use((req, res, next) => {
+  req.id = req.headers['x-request-id'] || crypto.randomUUID();
+  res.setHeader('X-Request-ID', req.id);
+  next();
+});
 
 // Rate limiters
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
@@ -95,6 +106,33 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/health/live', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
+app.get('/api/health/ready', async (req, res) => {
+  try {
+    const { isDatabaseEnabled, pool } = require('./data/db');
+    let dbStatus = 'offline_file_mode';
+    if (isDatabaseEnabled && pool) {
+      await pool.query('SELECT 1');
+      dbStatus = 'connected';
+    }
+    return res.json({
+      status: 'ready',
+      database: dbStatus,
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    return res.status(503).json({
+      status: 'degraded',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 const candidateDistPaths = [
   path.resolve(__dirname, '../../frontend/dist'),
   path.resolve(__dirname, '../../dist'),
@@ -130,6 +168,24 @@ const io = new Server(server, {
 });
 app.set('io', io);
 
+// Socket.IO authentication middleware: verifies Bearer JWT token if provided
+io.use((socket, next) => {
+  const rawToken = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!rawToken) {
+    // Allowed to connect as guest viewer
+    return next();
+  }
+  const cleanToken = rawToken.replace(/^Bearer\s+/i, '').trim();
+  try {
+    const decoded = jwt.verify(cleanToken, getJwtSecret());
+    socket.user = decoded;
+    return next();
+  } catch (err) {
+    console.warn(`[RT] Socket connection with invalid token: ${err.message}`);
+    return next();
+  }
+});
+
 const startServer = () => {
   const PORT = process.env.PORT || 5000;
   return server.listen(PORT, '0.0.0.0', () => {
@@ -138,6 +194,29 @@ const startServer = () => {
     console.log(`📡  Emitting: system:metrics (2s) · attack:event (3-7s) · timeline:update (30s)\n`);
   });
 };
+
+const gracefulShutdown = (signal) => {
+  console.log(`\n[Server] Received ${signal}. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('[Server] HTTP and Socket.IO server closed.');
+    const { pool } = require('./data/db');
+    if (pool) {
+      pool.end(() => {
+        console.log('[Server] PostgreSQL pool closed.');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  });
+  setTimeout(() => {
+    console.error('[Server] Forced shutdown after timeout.');
+    process.exit(1);
+  }, 5000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 if (require.main === module) {
   startRealtimeEngine(io);
