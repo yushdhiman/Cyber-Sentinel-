@@ -32,6 +32,7 @@ const allowedOrigins = process.env.CORS_ORIGIN
 const isAllowedOrigin = (origin) => {
   if (!origin) return true; // Allow non-browser agents, CLI tools, server-to-server
   if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return true;
+  if (origin.endsWith('.vercel.app') || origin.endsWith('.onrender.com')) return true;
   return false;
 };
 
