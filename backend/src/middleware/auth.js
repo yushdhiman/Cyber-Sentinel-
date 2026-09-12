@@ -57,4 +57,4 @@ function requireRole(allowedRoles = []) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+module.exports = { requireAuth, requireRole, verifyToken: requireAuth };
