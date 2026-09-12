@@ -1,104 +1,122 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import client from '../api/client';
 
-const DEFAULT_OPERATOR = {
-  name: 'Ayush Dhiman',
-  email: 'ayushdhiman708@gmail.com',
-  role: 'administrator',
-  phone: '+919876543210',
-  isEmailVerified: true,
-  isPhoneVerified: true,
-  createdAt: new Date().toISOString()
-};
-
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem('cs_user');
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed) return parsed;
-      } catch (e) {}
-    }
-    localStorage.setItem('cs_user', JSON.stringify(DEFAULT_OPERATOR));
-    localStorage.setItem('cs_token', 'sentinel-direct-token');
-    return DEFAULT_OPERATOR;
+  const [token, setToken] = useState(() => {
+    return localStorage.getItem('cs_token') || null;
   });
 
-  const token = localStorage.getItem('cs_token') || 'sentinel-direct-token';
+  const [user, setUser] = useState(() => {
+    const raw = localStorage.getItem('cs_user');
+    const savedToken = localStorage.getItem('cs_token');
+    if (raw && savedToken) {
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
 
-  const login = useCallback(async (email, password) => {
-    try {
-      const { data } = await client.post('/auth/login', { email, password });
+  const login = useCallback(async (email, password, mfaCode) => {
+    const { data } = await client.post('/auth/login', { email, password, mfaCode });
+    if (data.mfaRequired) {
+      return data;
+    }
+    if (data.token && data.user) {
       localStorage.setItem('cs_token', data.token);
+      if (data.refreshToken) {
+        localStorage.setItem('cs_refresh_token', data.refreshToken);
+      }
       localStorage.setItem('cs_user', JSON.stringify(data.user));
+      setToken(data.token);
       setUser(data.user);
       return data.user;
-    } catch (e) {
-      localStorage.setItem('cs_token', 'sentinel-direct-token');
-      localStorage.setItem('cs_user', JSON.stringify(DEFAULT_OPERATOR));
-      setUser(DEFAULT_OPERATOR);
-      return DEFAULT_OPERATOR;
     }
+    throw new Error(data.error || 'Authentication response missing token');
   }, []);
 
-  const loginMFA = login;
-
-  const register = useCallback(async (name, email, password, phone) => {
-    try {
-      const { data } = await client.post('/auth/register', { name, email, password, phone });
+  const verifyMFA = useCallback(async (mfaTicket, code) => {
+    const { data } = await client.post('/auth/verify-mfa', { mfaTicket, code });
+    if (data.token && data.user) {
       localStorage.setItem('cs_token', data.token);
+      if (data.refreshToken) {
+        localStorage.setItem('cs_refresh_token', data.refreshToken);
+      }
       localStorage.setItem('cs_user', JSON.stringify(data.user));
+      setToken(data.token);
       setUser(data.user);
       return data.user;
-    } catch (e) {
-      const fallback = {
-        name: name || 'Operator Alpha',
-        email: email || 'operator@sentinel.local',
-        role: 'analyst',
-        phone: phone || '',
-        isEmailVerified: true,
-        isPhoneVerified: true
-      };
-      localStorage.setItem('cs_token', 'sentinel-direct-token');
-      localStorage.setItem('cs_user', JSON.stringify(fallback));
-      setUser(fallback);
-      return fallback;
     }
+    throw new Error(data.error || 'MFA verification failed');
+  }, []);
+
+  const loginMFA = verifyMFA;
+
+  const register = useCallback(async (name, email, password, phone) => {
+    const { data } = await client.post('/auth/register', { name, email, password, phone });
+    if (data.token && data.user) {
+      localStorage.setItem('cs_token', data.token);
+      if (data.refreshToken) {
+        localStorage.setItem('cs_refresh_token', data.refreshToken);
+      }
+      localStorage.setItem('cs_user', JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+      return data.user;
+    }
+    throw new Error(data.error || 'Registration response missing token');
   }, []);
 
   const updateProfile = useCallback(async (profileData) => {
-    try {
-      const { data } = await client.put('/auth/profile', profileData);
-      if (data.token) localStorage.setItem('cs_token', data.token);
+    const { data } = await client.put('/auth/profile', profileData);
+    if (data.token) {
+      localStorage.setItem('cs_token', data.token);
+      setToken(data.token);
+    }
+    if (data.user) {
       localStorage.setItem('cs_user', JSON.stringify(data.user));
       setUser(data.user);
-      return data.user;
-    } catch (e) {
-      setUser(prev => {
-        const updated = { ...prev, ...profileData };
-        localStorage.setItem('cs_user', JSON.stringify(updated));
-        return updated;
-      });
     }
+    return data.user;
   }, []);
 
   const verifyCode = useCallback(async () => user, [user]);
-  const forgotPassword = useCallback(async () => ({ success: true }), []);
-  const resetPassword = useCallback(async () => ({ success: true }), []);
+
+  const forgotPassword = useCallback(async (payload) => {
+    const { data } = await client.post('/auth/forgot-password', payload);
+    return data;
+  }, []);
+
+  const resetPassword = useCallback(async (payload) => {
+    const { data } = await client.post('/auth/reset-password', payload);
+    return data;
+  }, []);
 
   const logout = useCallback(async () => {
-    localStorage.setItem('cs_user', JSON.stringify(DEFAULT_OPERATOR));
-    setUser(DEFAULT_OPERATOR);
+    const refreshToken = localStorage.getItem('cs_refresh_token');
+    try {
+      await client.post('/auth/logout', { refreshToken });
+    } catch (e) {
+      // Ignore network errors on logout
+    }
+    localStorage.removeItem('cs_token');
+    localStorage.removeItem('cs_refresh_token');
+    localStorage.removeItem('cs_user');
+    setToken(null);
+    setUser(null);
   }, []);
 
   return (
     <AuthContext.Provider value={{ 
       user, 
       token, 
+      isAuthenticated: Boolean(token && user),
       login, 
+      verifyMFA,
       loginMFA, 
       register, 
       logout, 

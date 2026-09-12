@@ -29,11 +29,12 @@ function getFreshMetrics() {
  * GET /api/system/metrics
  * Full system snapshot: CPU, RAM, threat score, network interfaces, findings.
  */
+const { setLastSystemMetrics } = require('../data/securityStore');
+
 router.get('/metrics', (req, res) => {
   try {
     const metrics = getFreshMetrics();
-    // Also update the global lastScanResult so the dashboard threat score reflects real data
-    global.lastSystemMetrics = metrics;
+    setLastSystemMetrics(metrics);
     res.json(metrics);
   } catch (err) {
     console.error('[system/metrics] Error collecting metrics:', err);

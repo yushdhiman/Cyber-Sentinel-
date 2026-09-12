@@ -59,6 +59,11 @@ async function sendSMS({ to, body, otp }) {
   if (fast2smsKey && (cleanPhone.startsWith('+91') || cleanPhone.length === 10)) {
     try {
       const numbers = cleanPhone.replace('+91', '').trim();
+      const otpVal = otp || body.match(/\d{6}/)?.[0] || '';
+      if (!otpVal) {
+        console.warn(`[Fast2SMS] Missing OTP code for dispatch to ${to}`);
+        return { simulated: false, error: 'Missing OTP code' };
+      }
       const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
         method: 'POST',
         headers: {
@@ -67,7 +72,7 @@ async function sendSMS({ to, body, otp }) {
         },
         body: JSON.stringify({
           route: 'otp',
-          variables_values: otp || body.match(/\d{6}/)?.[0] || '123456',
+          variables_values: otpVal,
           numbers: numbers,
         }),
       });

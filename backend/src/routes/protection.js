@@ -5,6 +5,9 @@ const { analyzeEmail, analyzeLink, analyzeFile } = require('../utils/protectionE
 const router = express.Router();
 router.use(requireAuth);
 
+const { setLastProtectionScan } = require('../data/securityStore');
+const { logSecurityEvent, AuditActions } = require('../utils/auditLogger');
+
 /**
  * POST /api/protection/scan-email
  * Scan email subject, sender, and text body.
@@ -16,7 +19,17 @@ router.post('/scan-email', (req, res) => {
   }
 
   const result = analyzeEmail(emailText, emailSubject || '', emailSender || '');
-  global.lastProtectionScan = { scanType: 'email', ...result };
+  setLastProtectionScan({ scanType: 'email', ...result });
+
+  logSecurityEvent({
+    actor: req.user?.email,
+    actorRole: req.user?.role,
+    action: AuditActions.SCAN_COMPLETED,
+    target: 'EMAIL_PROTECTION',
+    req,
+    details: { score: result.score, verdict: result.verdict },
+  });
+
   res.json(result);
 });
 
@@ -31,7 +44,17 @@ router.post('/scan-link', (req, res) => {
   }
 
   const result = analyzeLink(url);
-  global.lastProtectionScan = { scanType: 'link', ...result };
+  setLastProtectionScan({ scanType: 'link', ...result });
+
+  logSecurityEvent({
+    actor: req.user?.email,
+    actorRole: req.user?.role,
+    action: AuditActions.SCAN_COMPLETED,
+    target: 'URL_PROTECTION',
+    req,
+    details: { score: result.score, verdict: result.verdict },
+  });
+
   res.json(result);
 });
 
@@ -47,7 +70,17 @@ router.post('/scan-file', (req, res) => {
 
   const size = typeof fileSize === 'number' ? fileSize : 0;
   const result = analyzeFile(fileName, size, fileHash || '', rawContent || '');
-  global.lastProtectionScan = { scanType: 'file', ...result };
+  setLastProtectionScan({ scanType: 'file', ...result });
+
+  logSecurityEvent({
+    actor: req.user?.email,
+    actorRole: req.user?.role,
+    action: AuditActions.SCAN_COMPLETED,
+    target: 'FILE_PROTECTION',
+    req,
+    details: { fileName, score: result.score, verdict: result.verdict },
+  });
+
   res.json(result);
 });
 

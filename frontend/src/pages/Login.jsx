@@ -3,32 +3,57 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, verifyMFA } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('ayushdhiman708@gmail.com');
-  const [password, setPassword] = useState('SentinelAdmin2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // MFA Challenge State
+  const [mfaChallenge, setMfaChallenge] = useState(null); // { mfaTicket, email, mfaType }
+  const [totpCode, setTotpCode] = useState('');
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      const res = await login(email, password);
+      if (res && res.mfaRequired) {
+        setMfaChallenge({
+          mfaTicket: res.mfaTicket,
+          email: res.email,
+          mfaType: res.mfaType || 'totp'
+        });
+        setTotpCode('');
+        return;
+      }
       navigate('/');
     } catch (err) {
-      // Direct access fallback if backend unavailable
-      navigate('/');
+      setError(err.response?.data?.error || err.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
   }
 
-  function handleDirectAccess() {
-    login('ayushdhiman708@gmail.com', 'SentinelAdmin2026!');
-    navigate('/');
+  async function handleMfaSubmit(e) {
+    e.preventDefault();
+    if (!totpCode || totpCode.trim().length !== 6) {
+      setError('Please enter a valid 6-digit authenticator code.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await verifyMFA(mfaChallenge.mfaTicket, totpCode.trim());
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Invalid or expired authenticator code.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -41,7 +66,7 @@ export default function Login() {
         </p>
       </div>
 
-      {/* Login Credentials Form Side */}
+      {/* Login Credentials / MFA Challenge Form Side */}
       <div className="auth-form-side">
         <div className="auth-card">
           <div className="brand auth-brand">
@@ -51,114 +76,193 @@ export default function Login() {
               </svg>
             </span>
             <span className="brand-name" style={{ fontSize: '20px', letterSpacing: '0.05em', textShadow: '0 0 8px var(--accent-cyan-dim)' }}>
-              COMMAND GATEWAY
+              {mfaChallenge ? 'MFA VERIFICATION' : 'COMMAND GATEWAY'}
             </span>
           </div>
 
           <p className="auth-subtitle" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '20px' }}>
-            Instant clearance or operator access
+            {mfaChallenge ? 'Time-Based One-Time Password (TOTP)' : 'Operator Authentication & Access Control'}
           </p>
 
-          {/* 1-Click Direct Access without credentials */}
-          <button
-            type="button"
-            onClick={handleDirectAccess}
-            style={{
-              width: '100%',
-              padding: '13px 16px',
-              marginBottom: '20px',
-              background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 255, 136, 0.2))',
-              border: '1px solid var(--accent-cyan)',
-              borderRadius: '6px',
-              color: '#00d4ff',
-              fontFamily: 'Space Grotesk, sans-serif',
-              fontWeight: 700,
-              fontSize: '13px',
-              letterSpacing: '0.08em',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 0 20px rgba(0, 212, 255, 0.25)',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <span>⚡</span> DIRECT ACCESS (NO LOGIN NEEDED)
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', opacity: 0.6 }}>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
-            <span style={{ fontSize: '10px', color: 'var(--text-faint)', letterSpacing: '0.08em' }}>OR PRE-CONFIGURED OPERATOR</span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="auth-form">
-            <label>
-              OPERATOR ID (EMAIL)
-              <input 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
-                placeholder="analyst@sentinel.local" 
-                autoComplete="email"
-              />
-            </label>
-
-            <label>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>ACCESS PASSCODE</span>
-                <span style={{ fontSize: '10px', color: 'var(--accent-green)', fontFamily: 'Space Grotesk' }}>Auto-loaded</span>
+          {/* Render MFA Challenge View if Required */}
+          {mfaChallenge ? (
+            <form onSubmit={handleMfaSubmit} className="auth-form">
+              <div style={{
+                padding: '14px',
+                background: 'rgba(0, 212, 255, 0.08)',
+                border: '1px solid rgba(0, 212, 255, 0.25)',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                fontSize: '12px',
+                color: 'var(--text-dim)',
+                lineHeight: 1.5
+              }}>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🛡️</span> AUTHENTICATOR APP REQUIRED
+                </div>
+                Enter the 6-digit security code generated by <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>, or <strong>Authy</strong>.
+                <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-faint)' }}>
+                  Target: <code>{mfaChallenge.email}</code>
+                </div>
               </div>
-              <div style={{ position: 'relative', marginTop: '6px' }}>
+
+              <label>
+                AUTHENTICATOR 6-DIGIT CODE
                 <input 
-                  type={showPassword ? 'text' : 'password'} 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
+                  type="text" 
+                  maxLength={6}
+                  value={totpCode} 
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))} 
                   required 
-                  placeholder="••••••••" 
-                  autoComplete="current-password"
-                  style={{ paddingRight: '42px', marginTop: 0 }} 
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(p => !p)}
+                  placeholder="000000" 
+                  autoComplete="one-time-code"
+                  autoFocus
                   style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-faint)',
-                    fontSize: '14px',
-                    padding: 0,
-                    lineHeight: 1,
+                    fontSize: '20px',
+                    letterSpacing: '0.25em',
+                    textAlign: 'center',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 800,
+                    color: 'var(--accent-cyan)',
+                    marginTop: '6px'
                   }}
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                />
+              </label>
+
+              {error && (
+                <div 
+                  className="form-error"
+                  style={{
+                    padding: '10px 14px',
+                    background: 'rgba(255, 68, 68, 0.15)',
+                    border: '1px solid rgba(255, 68, 68, 0.4)',
+                    borderRadius: '6px',
+                    color: '#ff6b6b',
+                    fontSize: '12px',
+                    marginBottom: '12px'
+                  }}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {error}
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                className="btn-primary" 
+                disabled={loading} 
+                style={{ padding: '12px', fontSize: '14px', fontWeight: '700', letterSpacing: '0.05em', marginTop: '8px' }}
+              >
+                {loading ? 'VERIFYING CODE...' : 'CONFIRM MFA CODE'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setMfaChallenge(null); setError(''); }}
+                style={{
+                  width: '100%',
+                  marginTop: '12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-faint)',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+              >
+                ← Back to Password Login
+              </button>
+            </form>
+          ) : (
+            /* Standard Password Form (Step 1) */
+            <>
+              <form onSubmit={handleSubmit} className="auth-form">
+                <label>
+                  OPERATOR ID (EMAIL)
+                  <input 
+                    type="email" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    required 
+                    placeholder="analyst@sentinel.local" 
+                    autoComplete="email"
+                  />
+                </label>
+
+                <label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>ACCESS PASSCODE</span>
+                    <span style={{ fontSize: '10px', color: 'var(--accent-green)', fontFamily: 'Space Grotesk' }}>Secured</span>
+                  </div>
+                  <div style={{ position: 'relative', marginTop: '6px' }}>
+                    <input 
+                      type={showPassword ? 'text' : 'password'} 
+                      value={password} 
+                      onChange={(e) => setPassword(e.target.value)} 
+                      required 
+                      placeholder="••••••••" 
+                      autoComplete="current-password"
+                      style={{ paddingRight: '42px', marginTop: 0 }} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(p => !p)}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-faint)',
+                        fontSize: '14px',
+                        padding: 0,
+                        lineHeight: 1,
+                      }}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </label>
+
+                {error && (
+                  <div 
+                    className="form-error"
+                    style={{
+                      padding: '10px 14px',
+                      background: 'rgba(255, 68, 68, 0.15)',
+                      border: '1px solid rgba(255, 68, 68, 0.4)',
+                      borderRadius: '6px',
+                      color: '#ff6b6b',
+                      fontSize: '12px',
+                      marginBottom: '12px'
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  disabled={loading} 
+                  style={{ padding: '12px', fontSize: '14px', fontWeight: '700', letterSpacing: '0.05em', marginTop: '8px' }}
+                >
+                  {loading ? 'AUTHENTICATING...' : 'ENTER COMMAND CENTER'}
                 </button>
+              </form>
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                <Link to="/forgot-password" style={{ color: 'var(--text-faint)', textDecoration: 'none' }}>
+                  Forgot passcode?
+                </Link>
+                <Link to="/register" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
+                  Deploy new operator card →
+                </Link>
               </div>
-            </label>
-
-            {error && <div className="form-error">{error}</div>}
-
-            <button 
-              type="submit" 
-              className="btn-primary" 
-              disabled={loading} 
-              style={{ padding: '12px', fontSize: '14px', fontWeight: '700', letterSpacing: '0.05em', marginTop: '8px' }}
-            >
-              {loading ? 'AUTHENTICATING...' : 'ENTER COMMAND CENTER'}
-            </button>
-          </form>
-
-          <p className="auth-switch">
-            Deploy new operator card? <Link to="/register">Register account</Link>
-          </p>
+            </>
+          )}
         </div>
       </div>
     </div>

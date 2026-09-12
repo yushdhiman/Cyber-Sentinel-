@@ -12,6 +12,10 @@
  * executeTool(name, params) now supports parameterized tool calls.
  */
 
+const securityStore = require('../data/securityStore');
+const { logSecurityEvent, AuditActions } = require('./auditLogger');
+const iocMatcher = require('../services/threatIntel/iocMatcher');
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // READ TOOLS — Fetch live platform data
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -19,7 +23,7 @@
 // ── Tool: get_system_status ───────────────────────────────────────────────────
 function get_system_status() {
   try {
-    const m = global.lastSystemMetrics;
+    const m = securityStore.getLastSystemMetrics();
     if (!m) return { error: 'System metrics not yet available. The real-time engine may still be initialising.' };
 
     const findings = (m.findings || []).map(f => ({
@@ -125,7 +129,7 @@ function get_threat_intel() {
 // ── Tool: get_vuln_scan ───────────────────────────────────────────────────────
 function get_vuln_scan() {
   try {
-    const result = global.lastScanResult;
+    const result = securityStore.getLastScanResult();
     if (!result) {
       return {
         available: false,
@@ -167,7 +171,7 @@ function get_vuln_scan() {
 // ── Tool: get_log_analysis ────────────────────────────────────────────────────
 function get_log_analysis() {
   try {
-    const result = global.lastLogAnalysis;
+    const result = securityStore.getLastLogAnalysis();
     if (!result) {
       return {
         available: false,
@@ -204,7 +208,7 @@ function get_log_analysis() {
 // ── Tool: get_protection_scan ─────────────────────────────────────────────────
 function get_protection_scan() {
   try {
-    const result = global.lastProtectionScan;
+    const result = securityStore.getLastProtectionScan();
     if (!result) {
       return {
         available: false,
@@ -228,7 +232,7 @@ function get_protection_scan() {
 // ── Tool: get_sandbox_result ──────────────────────────────────────────────────
 function get_sandbox_result() {
   try {
-    const result = global.lastSandboxResult;
+    const result = securityStore.getLastSandboxResult();
     if (!result) {
       return {
         available: false,
@@ -300,7 +304,7 @@ async function run_vulnerability_scan() {
     const scanner = require('./scanner');
     if (typeof scanner.runScan === 'function') {
       const result = await scanner.runScan();
-      global.lastScanResult = result;
+      securityStore.setLastScanResult(result);
       return {
         triggered: true,
         riskScore: result.riskScore,
@@ -320,7 +324,7 @@ async function run_vulnerability_scan() {
     }
 
     // Heuristic fallback from live system metrics
-    const m = global.lastSystemMetrics;
+    const m = securityStore.getLastSystemMetrics();
     if (!m) return { triggered: false, error: 'No system metrics available for quick check.' };
 
     const issues = [];
@@ -332,7 +336,7 @@ async function run_vulnerability_scan() {
       issues.push({ severity: 'HIGH', title: `Suspicious process: ${p.name} (PID ${p.pid})`, recommendation: `Kill process ${p.pid} if not recognized.` })
     );
 
-    global.lastScanResult = { riskScore: m.threatScore, riskLevel: m.riskLevel, issues, scannedAt: new Date().toISOString() };
+    securityStore.setLastScanResult({ riskScore: m.threatScore, riskLevel: m.riskLevel, issues, scannedAt: new Date().toISOString() });
 
     return {
       triggered: true,
@@ -453,7 +457,7 @@ async function run_sandbox_attack(params = {}) {
     }
 
     const result = { type, payload: finalPayload, securityEnabled, blocked, status, logs, executionResult };
-    global.lastSandboxResult = result;
+    securityStore.setLastSandboxResult(result);
 
     return {
       triggered: true,
@@ -477,9 +481,6 @@ function block_ip_address(params = {}) {
   try {
     const { ip } = params;
     if (!ip) {
-      // Auto-block most suspicious IP from attack history
-      const m = global.lastSystemMetrics;
-      const suspicious = m?.suspiciousProcesses?.[0];
       return {
         triggered: false,
         error: 'No IP provided. Please specify an IP address to block. Example: {"ip": "192.168.1.100"}',
@@ -493,18 +494,36 @@ function block_ip_address(params = {}) {
       return { triggered: false, error: `Invalid IP format: "${ip}". Must be IPv4 like 1.2.3.4.` };
     }
 
-    // Store in global blocked list (picked up by realtime engine on next event)
-    if (!global.blockedIPs) global.blockedIPs = new Set();
-    global.blockedIPs.add(ip);
+    // AI Safety Boundary Policy Gate: Destructive operations require human confirmation
+    if (!params.confirm && !params.approvalConfirmed) {
+      return {
+        triggered: false,
+        requiresHumanApproval: true,
+        riskClassification: 'HIGH_RISK_DESTRUCTIVE_ACTION',
+        policy: 'AI Guardrail: Automated perimeter firewall modification requires explicit human approval.',
+        action: 'BLOCK_IP',
+        target: ip,
+        message: `⚠ AI Security Boundary: Blocking IP ${ip} requires human analyst confirmation. Call tool with {"ip": "${ip}", "confirm": true} to authorize execution.`,
+      };
+    }
+
+    const record = securityStore.blockIp(ip, params.reason || 'AI recommendation confirmed by operator', 'AI Copilot');
+    logSecurityEvent({
+      actor: 'AI Copilot',
+      actorRole: 'autonomous_agent',
+      action: AuditActions.AI_ACTION_APPROVED,
+      target: ip,
+      details: { action: 'BLOCK_IP', reason: params.reason || 'AI recommendation confirmed' },
+    });
 
     return {
       triggered: true,
       blockedIp: ip,
       action: 'FIREWALL_BLOCK',
-      method: 'Sentinel Real-time Engine IP Blocklist',
-      timestamp: new Date().toISOString(),
-      totalBlocked: global.blockedIPs.size,
-      summary: `✅ IP ${ip} has been added to the Sentinel blocklist. Future connections from this IP will be flagged as blocked.`,
+      method: 'Sentinel Persistent State Containment Rule',
+      timestamp: record.blockedAt,
+      totalBlocked: securityStore.getBlockedIps().length,
+      summary: `✅ Containment rule successfully applied: IP ${ip} is blocked in perimeter drop tables.`,
     };
   } catch (err) {
     return { triggered: false, error: `Block IP failed: ${err.message}` };
@@ -565,7 +584,7 @@ async function scan_url_or_email(params = {}) {
       indicators,
       scannedAt: new Date().toISOString(),
     };
-    global.lastProtectionScan = result;
+    securityStore.setLastProtectionScan(result);
 
     return {
       triggered: true,
@@ -628,11 +647,11 @@ function fetch_cve_details(params = {}) {
 // ── Tool: generate_incident_report ────────────────────────────────────────────
 async function generate_incident_report() {
   try {
-    const m = global.lastSystemMetrics;
-    const scanResult = global.lastScanResult;
-    const logAnalysis = global.lastLogAnalysis;
-    const protection = global.lastProtectionScan;
-    const sandbox = global.lastSandboxResult;
+    const m = securityStore.getLastSystemMetrics();
+    const scanResult = securityStore.getLastScanResult();
+    const logAnalysis = securityStore.getLastLogAnalysis();
+    const protection = securityStore.getLastProtectionScan();
+    const sandbox = securityStore.getLastSandboxResult();
 
     const engine = require('./realtimeEngine');
     const timeline = engine.getTimeline() || [];
@@ -716,16 +735,121 @@ async function generate_incident_report() {
 // ── Tool: get_blocked_ips ─────────────────────────────────────────────────────
 function get_blocked_ips() {
   try {
-    const blocked = global.blockedIPs ? [...global.blockedIPs] : [];
+    const blockedRecords = securityStore.getBlockedIps();
+    const blocked = blockedRecords.map(b => b.ip);
     return {
       blockedCount: blocked.length,
       blockedIPs: blocked,
+      records: blockedRecords,
       summary: blocked.length > 0
-        ? `${blocked.length} IPs are currently blocked: ${blocked.join(', ')}`
-        : 'No IPs are currently blocked. Use block_ip_address to block a suspicious IP.',
+        ? `${blocked.length} IPs are currently contained in perimeter drop rules: ${blocked.join(', ')}`
+        : 'No IPs are currently blocked. Use block_ip_address with human approval to contain an IP.',
     };
   } catch (err) {
     return { error: `Failed to get blocked IPs: ${err.message}` };
+  }
+}
+
+// ── Tool: get_soc_incidents ───────────────────────────────────────────────────
+function get_soc_incidents(params = {}) {
+  try {
+    const { status, severity } = params;
+    let incidents = securityStore.getIncidents();
+    if (status) {
+      incidents = incidents.filter(i => (i.status || '').toLowerCase() === status.toLowerCase());
+    }
+    if (severity) {
+      incidents = incidents.filter(i => (i.severity || '').toLowerCase() === severity.toLowerCase());
+    }
+    return {
+      count: incidents.length,
+      incidents: incidents.slice(0, 10).map(i => ({
+        id: i.id,
+        title: i.title,
+        severity: i.severity,
+        status: i.status,
+        category: i.category,
+        sourceIp: i.sourceIp,
+        createdAt: i.createdAt,
+        evidenceHash: i.evidenceHash
+      }))
+    };
+  } catch (err) {
+    return { error: `Failed to retrieve incidents: ${err.message}` };
+  }
+}
+
+// ── Tool: investigate_incident ───────────────────────────────────────────────
+function investigate_incident(params = {}) {
+  try {
+    const { incidentId } = params;
+    if (!incidentId) return { error: 'Missing incidentId parameter, e.g. "INC-1234"' };
+    const incident = securityStore.getIncidentById(incidentId);
+    if (!incident) return { error: `Incident ${incidentId} not found in store.` };
+    return {
+      incidentId: incident.id,
+      title: incident.title,
+      severity: incident.severity,
+      status: incident.status,
+      category: incident.category,
+      sourceIp: incident.sourceIp,
+      createdAt: incident.createdAt,
+      evidenceIntegrityHash: incident.evidenceHash,
+      evidence: incident.evidence,
+      mitreTechniques: incident.mitreTechniques || [],
+      timeline: incident.timeline || []
+    };
+  } catch (err) {
+    return { error: `Failed to investigate incident: ${err.message}` };
+  }
+}
+
+// ── Tool: investigate_ioc ────────────────────────────────────────────────────
+function investigate_ioc(params = {}) {
+  try {
+    const { indicator } = params;
+    if (!indicator) return { error: 'Missing indicator parameter (e.g. IP, domain, or SHA256 hash).' };
+    const match = iocMatcher.matchIndicator(indicator);
+    if (match) {
+      return {
+        verdict: 'MALICIOUS_IOC_MATCH',
+        indicator,
+        matchedType: match.type,
+        malware: match.malware,
+        confidence: match.confidence,
+        reporter: match.reporter,
+        firstSeen: match.firstSeen,
+        reference: match.reference
+      };
+    }
+    return {
+      verdict: 'NO_KNOWN_IOC_MATCH',
+      indicator,
+      note: 'Not found in currently loaded ThreatFox threat intelligence feeds or internal threat cache.'
+    };
+  } catch (err) {
+    return { error: `Failed to match IOC: ${err.message}` };
+  }
+}
+
+// ── Tool: get_audit_trail ─────────────────────────────────────────────────────
+function get_audit_trail(params = {}) {
+  try {
+    const limit = parseInt(params.limit || '10', 10);
+    const logs = securityStore.getAuditLogs().slice(0, limit);
+    return {
+      total: logs.length,
+      logs: logs.map(l => ({
+        id: l.id,
+        action: l.action,
+        userId: l.userId,
+        status: l.status,
+        timestamp: l.timestamp,
+        details: l.details
+      }))
+    };
+  } catch (err) {
+    return { error: `Failed to retrieve audit trail: ${err.message}` };
   }
 }
 
@@ -734,6 +858,39 @@ function get_blocked_ips() {
 // ═══════════════════════════════════════════════════════════════════════════════
 const TOOLS = [
   // ── READ TOOLS ──
+  {
+    name: 'get_soc_incidents',
+    description: 'Fetches active or triaged security incidents from the SIEM incident response store. Optional parameters: {"status": "NEW|TRIAGED|INVESTIGATING|CONTAINED|CLOSED", "severity": "LOW|MEDIUM|HIGH|CRITICAL"}.',
+    parameters: {
+      status: { type: 'string', description: 'Filter by incident status' },
+      severity: { type: 'string', description: 'Filter by incident severity' }
+    },
+    fn: get_soc_incidents
+  },
+  {
+    name: 'investigate_incident',
+    description: 'Retrieves deep forensic details, MITRE ATT&CK techniques, timeline, and SHA-256 evidence integrity hash for a specific incident ID. Parameters: {"incidentId": "INC-XXXX"}.',
+    parameters: {
+      incidentId: { type: 'string', description: 'Target Incident ID, e.g. INC-1234' }
+    },
+    fn: investigate_incident
+  },
+  {
+    name: 'investigate_ioc',
+    description: 'Queries ThreatFox and active threat intelligence feeds for a specific IP, domain, URL, or file hash. Parameters: {"indicator": "1.2.3.4"}.',
+    parameters: {
+      indicator: { type: 'string', description: 'IPv4, domain, URL, or hash' }
+    },
+    fn: investigate_ioc
+  },
+  {
+    name: 'get_audit_trail',
+    description: 'Fetches recent entries from the immutable SOC audit log to verify operator actions and compliance. Optional parameters: {"limit": 15}.',
+    parameters: {
+      limit: { type: 'number', description: 'Maximum number of entries to return' }
+    },
+    fn: get_audit_trail
+  },
   {
     name: 'get_system_status',
     description: 'Returns live system telemetry: CPU usage, RAM usage, disk usage, network I/O, uptime, threat score, risk level, active security findings, and suspicious processes.',

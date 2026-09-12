@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
 const DB_PATH = path.join(__dirname, 'users.json');
@@ -40,19 +41,39 @@ function saveDB() {
 }
 
 function seedDefaultAdmin() {
-  console.log('[DB] Seeding default administrator account...');
-  // Seed admin: admin@sentinel.ai / password123
-  const salt = bcrypt.genSaltSync(10);
-  const passwordHash = bcrypt.hashSync('password123', salt);
-  
+  const adminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'admin@sentinel.ai').trim().toLowerCase();
+  const adminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+
+  let passwordToHash;
+  let mustChange = false;
+
+  if (adminPassword) {
+    passwordToHash = adminPassword;
+    console.log(`[DB] Seeding primary administrator from environment: ${adminEmail}`);
+  } else {
+    passwordToHash = crypto.randomBytes(16).toString('hex');
+    mustChange = true;
+    console.log('\n============================================================');
+    console.log('[SECURITY] INITIAL_ADMIN_PASSWORD not set in environment.');
+    console.log(`[SECURITY] Generated one-time bootstrap administrator credential:`);
+    console.log(`[SECURITY] Email:    ${adminEmail}`);
+    console.log(`[SECURITY] Password: ${passwordToHash}`);
+    console.log('============================================================\n');
+  }
+
+  const salt = bcrypt.genSaltSync(12);
+  const passwordHash = bcrypt.hashSync(passwordToHash, salt);
+
   const adminUser = {
-    name: 'Admin User',
-    email: 'admin@sentinel.ai',
+    name: 'Primary Administrator',
+    email: adminEmail,
     passwordHash,
     role: 'administrator',
+    status: 'active',
+    mustChangePassword: mustChange,
     createdAt: new Date().toISOString(),
   };
-  
+
   users.set(adminUser.email.toLowerCase(), adminUser);
   saveDB();
 }

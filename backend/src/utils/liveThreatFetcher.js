@@ -226,17 +226,26 @@ async function syncLiveThreats() {
 
         return {
           id: v.cveID,
+          cveId: v.cveID,
           vendor: v.vendorProject,
           product: v.product,
           summary: `${v.vendorProject} ${v.product}: ${v.shortDescription}`,
-          cvss: sev === 'CRITICAL' ? 9.8 : sev === 'HIGH' ? 8.4 : 6.5,
+          cvss: v.cvssScore ? String(v.cvssScore) : 'Not provided by CISA feed',
+          cisaKevStatus: 'Known Exploited',
+          knownExploitation: true,
           severity: sev,
           affected: `${v.vendorProject} ${v.product}`,
           mitreTactic: sev === 'CRITICAL' ? 'Initial Access / Execution' : 'Privilege Escalation / Defense Evasion',
-          remediation: v.requiredAction || 'Apply vendor-supplied security patch immediately in compliance with CISA KEV directives.',
+          requiredAction: v.requiredAction || 'Apply vendor-supplied security patch in compliance with CISA KEV directives.',
+          remediation: v.requiredAction || 'Apply vendor-supplied security patch in compliance with CISA KEV directives.',
           dateAdded: v.dateAdded,
           dueDate: v.dueDate,
           notes: v.notes,
+          dataSource: 'CISA KEV',
+          dataType: 'VULNERABILITY',
+          observedAt: v.dateAdded || new Date().toISOString(),
+          ingestedAt: new Date().toISOString(),
+          isSimulation: false,
         };
       });
 
@@ -250,38 +259,40 @@ async function syncLiveThreats() {
   lastFetchedAt = new Date().toISOString();
 }
 
-// Generate real live attack stream events from authentic threat pool
+// Convert verified ThreatFox IOCs to standardized threat stream events with strict data provenance
 function generateRealLiveAttacks(count = 12) {
   const pool = liveThreatPool.length > 0 ? liveThreatPool : fallbackThreats;
   const attacks = [];
 
-  for (let i = 0; i < count; i++) {
-    const threat = pool[Math.floor(Math.random() * pool.length)];
-    const blockChance = threat.severity === 'CRITICAL' ? 0.85 : threat.severity === 'HIGH' ? 0.70 : 0.40;
-    const blocked = Math.random() < blockChance;
+  for (let i = 0; i < Math.min(count, pool.length); i++) {
+    const threat = pool[i];
 
     attacks.push({
-      id: `real-${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`,
-      timestamp: new Date(Date.now() - i * 35000).toISOString(),
+      id: `threatfox-${Date.now()}-${i}-${threat.sourceIp.replace(/[^a-zA-Z0-9]/g, '')}`,
+      timestamp: threat.lastSeen || new Date(Date.now() - i * 35000).toISOString(),
+      observedAt: threat.lastSeen || new Date(Date.now() - i * 35000).toISOString(),
+      ingestedAt: lastFetchedAt || new Date().toISOString(),
+      dataSource: 'ThreatFox',
+      dataType: 'IOC',
+      isSimulation: false,
       sourceIp: threat.sourceIp,
-      sourcePort: Math.floor(Math.random() * 55000) + 1024,
+      sourcePort: null, // Authentic IOC does not claim an arbitrary client source port
       destPort: threat.destPort || 443,
       country: threat.country || 'US',
       city: threat.city || 'Network Node',
       type: threat.type,
       malware: threat.malware,
       severity: threat.severity,
-      blocked,
+      blocked: false, // Honest state: active external IOC not blocked until actioned
       targetService: threat.destPort === 22 ? 'SSH' : threat.destPort === 3306 ? 'MySQL' : threat.destPort === 3389 ? 'RDP' : threat.destPort === 80 ? 'HTTP' : 'HTTPS',
       protocol: 'TCP',
-      bytesTransferred: Math.floor(Math.random() * 800000) + 2048,
-      packets: Math.floor(Math.random() * 8000) + 12,
+      bytesTransferred: null,
+      packets: null,
       mitreTechnique: threat.mitreTechnique,
       payloadSnippet: threat.payloadSnippet,
       remediation: threat.remediation,
       confidence: threat.confidence || 95,
-      threatIntelMatch: `Verified ThreatFox / CISA IOC [Confidence ${threat.confidence || 95}%]`,
-      isRealData: true,
+      threatIntelMatch: `Verified ThreatFox IOC [Confidence ${threat.confidence || 95}%]`,
     });
   }
 
@@ -344,6 +355,7 @@ module.exports = {
   generateRealLiveAttacks,
   getLiveCves,
   liveThreatPool,                             // Direct pool access for cross-referencing
+  fallbackThreats,
   getThreatPoolCount: () => liveThreatPool.length,
   getLastFetchedAt: () => lastFetchedAt,
 };

@@ -73,5 +73,4 @@ Ensure Node.js 18+ and npm are installed.
    npm run dev
    ```
 3. Open [http://localhost:5173](http://localhost:5173) and log in using:
-   - **Email**: admin@sentinel.ai
-   - **Password**: password123
+   - Credentials configured in `backend/.env` (`INITIAL_ADMIN_EMAIL` & `INITIAL_ADMIN_PASSWORD`), or the bootstrap token emitted on first backend launch.

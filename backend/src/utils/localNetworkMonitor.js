@@ -176,11 +176,17 @@ async function scanLocalConnections(iocPool = []) {
     const severity = iocMatch?.severity || portInfo?.severity || 'MEDIUM';
     const type = iocMatch?.type || portInfo?.type || 'Suspicious Connection';
     const mitreTechnique = iocMatch?.mitreTechnique || portInfo?.mitre || 'T1071 Application Layer Protocol';
-    const blocked = iocMatch ? Math.random() < 0.7 : Math.random() < 0.4;
+    // In real host telemetry, blocked is determined by firewall / blocklist state, not a coin flip
+    const blocked = false; // Real connection detected active; will be true if subsequently contained/blocked
 
     events.push({
       id: `local-${Date.now()}-${conn.remoteIp.replace(/\./g, '')}`,
       timestamp: new Date().toISOString(),
+      observedAt: new Date().toISOString(),
+      ingestedAt: new Date().toISOString(),
+      dataSource: 'Local Host Agent',
+      dataType: 'HOST_TELEMETRY',
+      isSimulation: false,
       sourceIp: conn.remoteIp,
       sourcePort: conn.remotePort,
       destPort: conn.localPort,
@@ -192,17 +198,16 @@ async function scanLocalConnections(iocPool = []) {
       blocked,
       targetService: SUSPICIOUS_PORTS[conn.localPort]?.type.split(' ')[0] || `Port ${conn.localPort}`,
       protocol: conn.proto,
-      bytesTransferred: Math.floor(Math.random() * 500000) + 1024,
-      packets: Math.floor(Math.random() * 5000) + 10,
+      bytesTransferred: null, // Omit fabrication when OS socket counters unavailable
+      packets: null,
       mitreTechnique,
       payloadSnippet: iocMatch?.payloadSnippet || null,
-      remediation: iocMatch?.remediation || `Block outbound connections to ${conn.remoteIp} on port ${conn.remotePort}. Investigate process PID ${conn.pid}.`,
-      confidence: iocMatch ? (iocMatch.confidence || 90) : 55,
+      remediation: iocMatch?.remediation || `Inspect process PID ${conn.pid} and restrict outbound traffic to ${conn.remoteIp}:${conn.remotePort}.`,
+      confidence: iocMatch ? (iocMatch.confidence || 90) : 60,
       threatIntelMatch: iocMatch
-        ? `✓ VERIFIED ThreatFox IOC — Matched ${conn.remoteIp}`
-        : `⚠ Suspicious Port ${conn.remotePort} — Local active connection detected`,
-      isRealData: true,
-      localSource: true, // Flag: this came from THIS machine's real connections
+        ? `ThreatFox IOC Match — ${conn.remoteIp}`
+        : `Suspicious Port ${conn.remotePort} — Active host socket`,
+      localSource: true,
       pid: conn.pid,
     });
   }

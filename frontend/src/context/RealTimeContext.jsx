@@ -43,22 +43,35 @@ const INITIAL_SYSTEM_METRICS = {
 };
 
 const INITIAL_ATTACK_FEED = [
-  { id: 'seed-atk-1', ip: '194.26.29.112', sourceIp: '194.26.29.112', type: 'Cobalt Strike C2 Beacon', severity: 'CRITICAL', protocol: 'HTTPS/443', location: 'Frankfurt, DE', blocked: true, timestamp: new Date(Date.now() - 12000).toISOString() },
-  { id: 'seed-atk-2', ip: '45.154.255.89', sourceIp: '45.154.255.89', type: 'LockBit 3.0 Ransomware Drop', severity: 'CRITICAL', protocol: 'TCP/4444', location: 'Amsterdam, NL', blocked: true, timestamp: new Date(Date.now() - 32000).toISOString() },
-  { id: 'seed-atk-3', ip: '103.203.57.18', sourceIp: '103.203.57.18', type: 'CVE-2021-44228 Log4j RCE Probe', severity: 'HIGH', protocol: 'LDAP/389', location: 'Singapore, SG', blocked: true, timestamp: new Date(Date.now() - 65000).toISOString() },
-  { id: 'seed-atk-4', ip: '185.220.101.5', sourceIp: '185.220.101.5', type: 'Tor Exit Node Port Scan', severity: 'MEDIUM', protocol: 'TCP/8080', location: 'Reykjavik, IS', blocked: false, timestamp: new Date(Date.now() - 95000).toISOString() },
-  { id: 'seed-atk-5', ip: '91.240.118.242', sourceIp: '91.240.118.242', type: 'Mirai Botnet Telnet Sweep', severity: 'HIGH', protocol: 'TCP/23', location: 'Sofia, BG', blocked: true, timestamp: new Date(Date.now() - 130000).toISOString() },
-  { id: 'seed-atk-6', ip: '198.51.100.44', sourceIp: '198.51.100.44', type: 'Credential Stuffing Attempt', severity: 'LOW', protocol: 'HTTPS/443', location: 'Ashburn, US', blocked: false, timestamp: new Date(Date.now() - 180000).toISOString() },
+  { id: 'seed-atk-1', ip: '194.26.29.112', sourceIp: '194.26.29.112', type: 'Cobalt Strike C2 Beacon', severity: 'CRITICAL', protocol: 'HTTPS/443', location: 'Frankfurt, DE', blocked: false, timestamp: new Date(Date.now() - 12000).toISOString(), dataSource: 'ThreatFox', dataType: 'IOC', isSimulation: false },
+  { id: 'seed-atk-2', ip: '45.154.255.89', sourceIp: '45.154.255.89', type: 'LockBit 3.0 Ransomware Drop', severity: 'CRITICAL', protocol: 'TCP/4444', location: 'Amsterdam, NL', blocked: false, timestamp: new Date(Date.now() - 32000).toISOString(), dataSource: 'ThreatFox', dataType: 'IOC', isSimulation: false },
+  { id: 'seed-atk-3', ip: '103.203.57.18', sourceIp: '103.203.57.18', type: 'CVE-2021-44228 Log4j RCE Probe', severity: 'HIGH', protocol: 'LDAP/389', location: 'Singapore, SG', blocked: false, timestamp: new Date(Date.now() - 65000).toISOString(), dataSource: 'CISA KEV', dataType: 'VULNERABILITY', isSimulation: false },
 ];
 
 const INITIAL_TIMELINE = Array.from({ length: 24 }, (_, i) => {
   const d = new Date(Date.now() - (23 - i) * 30 * 60 * 1000);
   return {
     hour: `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`,
-    attacks: Math.floor(6 + Math.sin(i * 0.4) * 4 + 2),
-    blocked: Math.floor(4 + Math.sin(i * 0.4) * 3 + 1),
+    attacks: 0,
+    blocked: 0,
   };
 });
+
+const normalizeAttack = (a) => {
+  if (!a) return a;
+  const ip = a.ip || a.sourceIp || 'Unknown IP';
+  const location = a.location || (a.city && a.country ? `${a.city}, ${a.country}` : a.country || 'External Sensor');
+  return {
+    ...a,
+    ip,
+    sourceIp: a.sourceIp || ip,
+    location,
+    timestamp: a.timestamp || a.observedAt || new Date().toISOString(),
+    dataSource: a.dataSource || (a.isSimulation ? 'Cyber Sentinel Simulator' : 'ThreatFox'),
+    dataType: a.dataType || (a.isSimulation ? 'SIMULATION' : 'IOC'),
+    isSimulation: Boolean(a.isSimulation),
+  };
+};
 
 export function RealTimeProvider({ children }) {
   const { token } = useAuth();
@@ -116,26 +129,7 @@ export function RealTimeProvider({ children }) {
     if (socketRef.current && connected) {
       socketRef.current.emit('attack:simulate', { count });
     } else {
-      // Local fallback simulation wave
-      const types = ['SQL Injection Probe', 'Zero-Day SSRF Exploit', 'Brute-Force SSH Auth', 'DNS Tunneling Probe'];
-      const locs = ['Frankfurt, DE', 'Tokyo, JP', 'London, UK', 'San Jose, US'];
-      const newAttacks = Array.from({ length: count }, (_, idx) => {
-        const randOctet = Math.floor(Math.random() * 250) + 2;
-        return {
-          id: `sim-atk-${Date.now()}-${idx}`,
-          ip: `198.51.${randOctet}.${Math.floor(Math.random() * 254) + 1}`,
-          sourceIp: `198.51.${randOctet}.${Math.floor(Math.random() * 254) + 1}`,
-          type: types[Math.floor(Math.random() * types.length)],
-          severity: Math.random() > 0.4 ? 'CRITICAL' : 'HIGH',
-          protocol: 'HTTPS/443',
-          location: locs[Math.floor(Math.random() * locs.length)],
-          blocked: Math.random() > 0.3,
-          timestamp: new Date().toISOString()
-        };
-      });
-      setAttackFeed(prev => [...newAttacks, ...prev].slice(0, MAX_FEED_EVENTS));
-      setLiveAttackCount(prev => prev + count);
-      setBlockedCount(prev => prev + newAttacks.filter(a => a.blocked).length);
+      console.warn('[RealTime] Simulation requires an active WebSocket telemetry connection to the backend engine.');
     }
   }, [connected]);
 
@@ -200,7 +194,7 @@ export function RealTimeProvider({ children }) {
       // Initial attack history on connect
       socket.on('attack:history', (history) => {
         if (Array.isArray(history)) {
-          setAttackFeed(history);
+          setAttackFeed(history.map(normalizeAttack));
         }
       });
 
@@ -216,7 +210,8 @@ export function RealTimeProvider({ children }) {
       });
 
       // New attack event
-      socket.on('attack:event', (attack) => {
+      socket.on('attack:event', (rawAttack) => {
+        const attack = normalizeAttack(rawAttack);
         attackTimestamps.current.push(Date.now());
         updateApm();
         if (attack.severity === 'CRITICAL') {
@@ -234,7 +229,7 @@ export function RealTimeProvider({ children }) {
 
       // IP blocked broadcast
       socket.on('attack:ip_blocked', ({ ip, blockedCount: newBlocked }) => {
-        setAttackFeed(prev => prev.map(a => a.sourceIp === ip ? { ...a, blocked: true } : a));
+        setAttackFeed(prev => prev.map(a => (a.sourceIp === ip || a.ip === ip) ? { ...a, blocked: true } : a));
         if (newBlocked !== undefined) {
           setBlockedCount(newBlocked);
         }
@@ -299,22 +294,7 @@ export function RealTimeProvider({ children }) {
     return () => clearInterval(interval);
   }, [updateApm]);
 
-  // Autonomous telemetry heartbeat when socket is connecting or server is cold-starting
-  useEffect(() => {
-    if (connected) return;
-    const interval = setInterval(() => {
-      setSystemMetrics(prev => {
-        if (!prev) return INITIAL_SYSTEM_METRICS;
-        const jitter = (Math.random() - 0.5) * 2;
-        return {
-          ...prev,
-          cpuUsage: Math.min(60, Math.max(20, Math.round((prev.cpuUsage || 26) + jitter))),
-          memoryUsage: Math.min(75, Math.max(38, Math.round((prev.memoryUsage || 44) + jitter * 0.3)))
-        };
-      });
-    }, 3500);
-    return () => clearInterval(interval);
-  }, [connected]);
+
 
   const value = {
     connected,

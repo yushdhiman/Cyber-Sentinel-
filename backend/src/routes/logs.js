@@ -7,6 +7,10 @@ router.use(requireAuth);
 
 const MAX_LOG_CHARS = 500_000; // ~0.5MB of text, generous for a demo
 
+const { setLastLogAnalysis } = require('../data/securityStore');
+const { logSecurityEvent, AuditActions } = require('../utils/auditLogger');
+const { recordWebExploit } = require('../utils/correlationEngine');
+
 router.post('/analyze', (req, res) => {
   const { logText } = req.body;
 
@@ -18,7 +22,32 @@ router.post('/analyze', (req, res) => {
   }
 
   const result = analyzeLog(logText);
-  global.lastLogAnalysis = result;
+  setLastLogAnalysis(result);
+
+  // Check if any finding is a successful exploit (HTTP 200 on SQLi / RCE)
+  if (result.findings && Array.isArray(result.findings)) {
+    result.findings.forEach(f => {
+      if (f.severity === 'CRITICAL' || f.type?.includes('SQL') || f.type?.includes('Exploit')) {
+        recordWebExploit({
+          ip: f.sourceIp || '127.0.0.1',
+          attackType: f.type || 'Web Application Exploit',
+          payload: f.matchSnippet || logText.slice(0, 150),
+          path: f.path || '/api/v1',
+          statusCode: f.statusCode || 200,
+        });
+      }
+    });
+  }
+
+  logSecurityEvent({
+    actor: req.user?.email,
+    actorRole: req.user?.role,
+    action: AuditActions.SCAN_COMPLETED,
+    target: 'LOG_ANALYZER',
+    req,
+    details: { totalFindings: result.findings?.length, severity: result.summary?.highestSeverity },
+  });
+
   res.json(result);
 });
 

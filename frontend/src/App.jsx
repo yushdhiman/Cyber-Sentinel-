@@ -17,6 +17,7 @@ import SecurityTools from './pages/SecurityTools';
 import ProtectionCenter from './pages/ProtectionCenter';
 import Sandbox from './pages/Sandbox';
 import Profile from './pages/Profile';
+import Incidents from './pages/Incidents';
 
 function AppShell() {
   const [theme, setTheme] = useState(() => localStorage.getItem('cs_theme') || 'dark');
@@ -32,10 +33,10 @@ function AppShell() {
 
   return (
     <Routes>
-      <Route path="/login" element={<Navigate to="/" replace />} />
-      <Route path="/register" element={<Navigate to="/" replace />} />
-      <Route path="/forgot-password" element={<Navigate to="/" replace />} />
-      <Route path="/reset-password" element={<Navigate to="/" replace />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/*"
         element={
@@ -43,6 +44,7 @@ function AppShell() {
             <Layout theme={theme} onToggleTheme={toggleTheme}>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/incidents" element={<Incidents />} />
                 <Route path="/log-analyzer" element={<LogAnalyzer />} />
                 <Route path="/vuln-scanner" element={<VulnScanner />} />
                 <Route path="/threat-intel" element={<ThreatIntel />} />

@@ -17,33 +17,22 @@ const chatbotRoutes = require('./routes/chatbot');
 const systemRoutes = require('./routes/system');
 const sandboxRoutes = require('./routes/sandbox');
 const protectionRoutes = require('./routes/protection');
+const incidentRoutes = require('./routes/incidents');
+const auditRoutes = require('./routes/audit');
+const eventRoutes = require('./routes/events');
+const malwareRoutes = require('./routes/malware');
 const { startRealtimeEngine } = require('./utils/realtimeEngine');
 
 const app = express();
 
 const allowedOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim()) 
-  : ['http://localhost:5173'];
+  : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
 
-const isLocal = (url) => {
-  try {
-    const hostname = new URL(url).hostname;
-    return hostname === 'localhost' || hostname === '127.0.0.1';
-  } catch (e) {
-    return false;
-  }
-};
-
-const isAllowedOrigin = (url) => {
-  if (!url) return true;
-  if (allowedOrigins.includes(url) || allowedOrigins.includes('*')) return true;
-  if (isLocal(url)) return true;
-  try {
-    const hostname = new URL(url).hostname;
-    return hostname.endsWith('.vercel.app') || hostname.endsWith('.onrender.com');
-  } catch (e) {
-    return true; // Fallback to allowing in production demo
-  }
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // Allow non-browser agents, CLI tools, server-to-server
+  if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return true;
+  return false;
 };
 
 const corsOptions = {
@@ -51,11 +40,12 @@ const corsOptions = {
     if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
-      callback(null, true); // Safe permissive fallback for demo operations
+      callback(new Error(`CORS policy violation: Origin '${origin}' is not authorized`));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 };
 
 if (!process.env.JWT_SECRET) {
@@ -87,6 +77,10 @@ app.use('/api/chatbot', apiLimiter, chatbotRoutes);
 app.use('/api/system', apiLimiter, systemRoutes);
 app.use('/api/sandbox', apiLimiter, sandboxRoutes);
 app.use('/api/protection', apiLimiter, protectionRoutes);
+app.use('/api/incidents', apiLimiter, incidentRoutes);
+app.use('/api/audit-logs', apiLimiter, auditRoutes);
+app.use('/api/events', apiLimiter, eventRoutes);
+app.use('/api/malware', apiLimiter, malwareRoutes);
 
 app.get('/api/health', (req, res) => {
   const host = req.get('host');
@@ -133,6 +127,7 @@ const io = new Server(server, {
   cors: corsOptions,
   transports: ['websocket', 'polling'],
 });
+app.set('io', io);
 
 const startServer = () => {
   const PORT = process.env.PORT || 5000;

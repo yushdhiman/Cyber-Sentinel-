@@ -1,4 +1,13 @@
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
 export default function ProtectedRoute({ children }) {
-  // Allow direct access without login barrier
+  const { user, token } = useAuth();
+  const location = useLocation();
+
+  if (!token || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
   return children;
 }

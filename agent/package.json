@@ -1,0 +1,14 @@
+{
+  "name": "cyber-sentinel-endpoint-agent",
+  "version": "1.0.0",
+  "description": "Lightweight Host Telemetry & Threat Ingestion Agent for Cyber Sentinel SOC",
+  "main": "agent.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node agent.js",
+    "simulate:exec": "node agent.js --simulate-suspicious-exec"
+  },
+  "keywords": ["soc", "endpoint-agent", "telemetry", "cyber-security"],
+  "author": "Cyber Sentinel Team",
+  "license": "MIT"
+}

@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { setLastSandboxResult } = require('../data/securityStore');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -214,7 +215,7 @@ router.post('/simulate', (req, res) => {
     executionResult,
     code: VULN_CODE[type]
   };
-  global.lastSandboxResult = result;
+  setLastSandboxResult(result);
   res.json(result);
 });
 

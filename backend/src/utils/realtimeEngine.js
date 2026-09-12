@@ -15,6 +15,12 @@ const os = require('os');
 const { collectSystemMetrics } = require('./systemMetrics');
 const { scanLocalConnections, getListeningPorts, getConnectionCount } = require('./localNetworkMonitor');
 const { liveThreatPool, getThreatPoolCount, getLastFetchedAt } = require('./liveThreatFetcher');
+const {
+  blockIp: storeBlockIp,
+  isIpBlocked,
+  getBlockedIps,
+  setLastSystemMetrics,
+} = require('../data/securityStore');
 
 // Rolling 24-hour attack volume timeline (24 half-hour buckets)
 const TIMELINE_BUCKETS = 24;
@@ -107,14 +113,14 @@ function startRealtimeEngine(io) {
 
     socket.on('attack:block_ip', (data) => {
       if (data?.ip) {
-        blockedIps.add(data.ip);
+        storeBlockIp(data.ip, 'Operator real-time containment', 'operator');
         attackHistory.forEach(a => {
           if (a.sourceIp === data.ip && !a.blocked) {
             a.blocked = true;
             sessionBlockedCount++;
           }
         });
-        io.emit('attack:ip_blocked', { ip: data.ip, blockedCount: sessionBlockedCount });
+        io.emit('attack:ip_blocked', { ip: data.ip, blockedCount: getBlockedIps().length });
         io.emit('system:metrics', buildDashboardSnapshot(latestMetrics || collectSystemMetrics()));
       }
     });
@@ -126,7 +132,7 @@ function startRealtimeEngine(io) {
         const events = await scanLocalConnections(pool);
         events.forEach((attack, idx) => {
           attack.id = `scan-${++attackEventCounter}-${Date.now()}-${idx}`;
-          if (blockedIps.has(attack.sourceIp)) attack.blocked = true;
+          if (isIpBlocked(attack.sourceIp)) attack.blocked = true;
           sessionAttackCount++;
           if (attack.blocked) sessionBlockedCount++;
           severityCounts[attack.severity] = (severityCounts[attack.severity] || 0) + 1;
@@ -170,7 +176,7 @@ function startRealtimeEngine(io) {
   setInterval(async () => {
     try {
       latestMetrics = await collectSystemMetrics();
-      global.lastSystemMetrics = latestMetrics;
+      setLastSystemMetrics(latestMetrics);
       const snapshot = buildDashboardSnapshot(latestMetrics);
       io.emit('system:metrics', snapshot);
     } catch (err) {
