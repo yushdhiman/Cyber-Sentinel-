@@ -27,6 +27,9 @@ function extractIp(line) {
 }
 
 function analyzeLog(rawText) {
+  if (!rawText || typeof rawText !== 'string') {
+    return { summary: { totalLines: 0, totalFindings: 0, uniqueSourceIps: 0, riskScore: 0, riskLevel: 'LOW' }, findings: [] };
+  }
   const lines = rawText.split(/\r?\n/).filter(Boolean);
   const findings = [];
   const failedLoginsByIp = {};

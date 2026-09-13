@@ -495,7 +495,7 @@ function block_ip_address(params = {}) {
     }
 
     // AI Safety Boundary Policy Gate: Destructive operations require human confirmation
-    if (!params.confirm && !params.approvalConfirmed) {
+    if (params.confirm !== true && params.approvalConfirmed !== true) {
       return {
         triggered: false,
         requiresHumanApproval: true,

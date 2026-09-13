@@ -158,6 +158,7 @@ const EventEmitter = require('events');
 
 class CorrelationEngine extends EventEmitter {
   processEvent(event) {
+    if (!event || typeof event !== 'object') return null;
     let incident = null;
     const ep = event.endpoint || event.path || (event.details && event.details.path) || '';
     const isSqli = /union\s+select|or\s+1=1|--|;\s*drop/i.test(ep);

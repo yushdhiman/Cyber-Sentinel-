@@ -21,7 +21,8 @@ const EventTypes = {
 /**
  * Normalizes an arbitrary raw event into the canonical format.
  */
-function normalizeEvent(raw = {}) {
+function normalizeEvent(rawInput = {}) {
+  const raw = (rawInput && typeof rawInput === 'object') ? rawInput : {};
   const now = new Date().toISOString();
   const eventId = raw.eventId || `evt-${Date.now().toString().slice(-6)}-${crypto.randomBytes(3).toString('hex')}`;
   const timestamp = raw.timestamp || raw.observedAt || now;

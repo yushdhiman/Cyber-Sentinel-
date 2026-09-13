@@ -52,9 +52,11 @@ function reindexIocs() {
 function addIndicators(items = []) {
   if (!Array.isArray(items)) return;
   items.forEach(item => {
-    const ioc = item.ioc || item.sourceIp || item.value;
-    if (!ioc) return;
-    const cleanIoc = ioc.trim();
+    if (!item || typeof item !== 'object') return;
+    const rawIoc = item.ioc || item.sourceIp || item.value;
+    if (!rawIoc || typeof rawIoc !== 'string') return;
+    const cleanIoc = rawIoc.trim();
+    if (!cleanIoc) return;
     const isHash = /^[a-fA-F0-9]{32,64}$/.test(cleanIoc);
     const isIp = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(cleanIoc);
 

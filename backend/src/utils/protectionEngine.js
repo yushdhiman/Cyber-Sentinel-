@@ -177,8 +177,11 @@ function analyzeLink(url) {
 /**
  * Analyzes Email content for phishing indicators.
  */
-function analyzeEmail(emailText, emailSubject = '', emailSender = '') {
-  const textToScan = `${emailSubject}\n${emailSender}\n${emailText}`;
+function analyzeEmail(emailText = '', emailSubject = '', emailSender = '') {
+  const safeText = typeof emailText === 'string' ? emailText : '';
+  const safeSubject = typeof emailSubject === 'string' ? emailSubject : '';
+  const safeSender = typeof emailSender === 'string' ? emailSender : '';
+  const textToScan = `${safeSubject}\n${safeSender}\n${safeText}`;
   const findings = [];
   let score = 0;
   const tags = new Set();
@@ -250,19 +253,20 @@ function analyzeEmail(emailText, emailSubject = '', emailSender = '') {
 /**
  * Analyzes File details / signatures for viruses.
  */
-function analyzeFile(fileName, fileSize, fileHash = '', rawContent = '') {
+function analyzeFile(fileName = '', fileSize = 0, fileHash = '', rawContent = '') {
   const findings = [];
   let score = 0;
   let detectedMalwareName = null;
   let type = 'UNKNOWN';
 
   // Normalize inputs
-  const cleanHash = fileHash.trim().toLowerCase();
-  const lowerName = fileName.trim().toLowerCase();
+  const cleanHash = (typeof fileHash === 'string' ? fileHash : '').trim().toLowerCase();
+  const lowerName = (typeof fileName === 'string' ? fileName : '').trim().toLowerCase();
+  const safeContent = typeof rawContent === 'string' ? rawContent : (Buffer.isBuffer(rawContent) ? rawContent.toString('latin1') : '');
 
   // 1. EICAR Antivirus Test Signature Check
   const eicarPattern = /X5O!P%@AP\[4\\PZX54\(P\^\)7CC\)7\}\$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!\$H\+H\*/;
-  if (eicarPattern.test(rawContent) || eicarPattern.test(fileName)) {
+  if (eicarPattern.test(safeContent) || eicarPattern.test(lowerName)) {
     detectedMalwareName = 'EICAR-Standard-Antivirus-Test-File';
     type = 'Test Signature';
     findings.push({

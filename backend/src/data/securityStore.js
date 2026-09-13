@@ -122,7 +122,7 @@ loadState();
 
 // ── IP Containment Operations ──────────────────────────────────────────────
 function blockIp(ip, reason = 'Automated threat containment', blockedBy = 'system') {
-  const cleanIp = (ip || '').trim();
+  const cleanIp = (typeof ip === 'string' ? ip : '').trim();
   if (!cleanIp) return null;
 
   const record = {
@@ -154,7 +154,7 @@ function blockIp(ip, reason = 'Automated threat containment', blockedBy = 'syste
 }
 
 function unblockIp(ip) {
-  const cleanIp = (ip || '').trim();
+  const cleanIp = (typeof ip === 'string' ? ip : '').trim();
   if (state.blockedIps[cleanIp]) {
     state.blockedIps[cleanIp].active = false;
     state.blockedIps[cleanIp].unblockedAt = new Date().toISOString();
@@ -173,7 +173,7 @@ function unblockIp(ip) {
 }
 
 function isIpBlocked(ip) {
-  const cleanIp = (ip || '').trim();
+  const cleanIp = (typeof ip === 'string' ? ip : '').trim();
   const entry = state.blockedIps[cleanIp];
   return Boolean(entry && entry.active);
 }
@@ -224,13 +224,21 @@ function getAuditLogs(limit = 100) {
 }
 
 // ── Incident Management Operations ─────────────────────────────────────────
-function createIncident({ title, severity, category, description, relatedIps = [], relatedAlerts = [], mitreTechniques = [], evidence = null, createdBy = 'correlation-engine' }) {
+function createIncident(params = {}) {
+  const p = (params && typeof params === 'object') ? params : {};
+  const { title = 'Untitled Incident', severity, category, description, relatedIps = [], relatedAlerts = [], mitreTechniques = [], evidence = null, createdBy = 'correlation-engine' } = p;
   const incId = `INC-${Date.now().toString().slice(-5)}${crypto.randomInt(10, 99)}`;
   
   let evidenceHash = null;
+  let storedEvidence = evidence;
   if (evidence) {
-    const rawEvidence = typeof evidence === 'string' ? evidence : JSON.stringify(evidence);
-    evidenceHash = crypto.createHash('sha256').update(rawEvidence).digest('hex');
+    try {
+      const rawEvidence = typeof evidence === 'string' ? evidence : JSON.stringify(evidence);
+      evidenceHash = crypto.createHash('sha256').update(rawEvidence || '').digest('hex');
+    } catch (_) {
+      evidenceHash = crypto.createHash('sha256').update(String(evidence)).digest('hex');
+      storedEvidence = '[Non-serializable or Complex Evidence Payload]';
+    }
   }
 
   const incident = {
@@ -245,7 +253,7 @@ function createIncident({ title, severity, category, description, relatedIps = [
     relatedAlerts: Array.isArray(relatedAlerts) ? relatedAlerts : [relatedAlerts],
     mitreTechniques: Array.isArray(mitreTechniques) ? mitreTechniques : [mitreTechniques],
     evidence: {
-      payload: evidence,
+      payload: storedEvidence,
       sha256: evidenceHash,
       preservedAt: new Date().toISOString(),
     },
