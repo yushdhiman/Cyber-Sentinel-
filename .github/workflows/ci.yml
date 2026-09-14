@@ -41,6 +41,15 @@ jobs:
 
       - name: Run Phase 3 Adversarial Security Suite
         run: |
-          PORT=5000 SERVER_URL=http://localhost:5000 JWT_SECRET=cyber-sentinel-ci-test-secret-key-123456789 node src/server.js &
-          sleep 5
-          PORT=5000 SERVER_URL=http://localhost:5000 JWT_SECRET=cyber-sentinel-ci-test-secret-key-123456789 npm run test:adversarial
+          node src/server.js &
+          SERVER_PID=$!
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/api/health > /dev/null 2>&1; then
+              echo "Server ready on port 5000"
+              break
+            fi
+            echo "Waiting for server to be ready..."
+            sleep 1
+          done
+          npm run test:adversarial
+          kill $SERVER_PID || true
