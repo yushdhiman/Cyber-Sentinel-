@@ -336,7 +336,12 @@ I'm your **agentic SOC AI** with **18 live tools** — I can read real-time data
   useEffect(() => {
     try {
       const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-      const socket = socketIO(serverUrl, { transports: ['websocket', 'polling'], withCredentials: true });
+      // Read JWT from localStorage — same key used by AuthContext
+      const token = localStorage.getItem('cs_token');
+      const socket = socketIO(serverUrl, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+      });
       socketRef.current = socket;
 
       // Listen for session-specific agent steps
@@ -348,6 +353,10 @@ I'm your **agentic SOC AI** with **18 live tools** — I can read real-time data
           if (alreadyHas) return prev;
           return [...prev, step];
         });
+      });
+
+      socket.on('connect_error', (err) => {
+        console.warn('[Assistant WS] Connection rejected:', err?.message);
       });
 
       return () => socket.disconnect();

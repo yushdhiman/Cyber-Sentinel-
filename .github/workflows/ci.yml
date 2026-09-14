@@ -1,0 +1,40 @@
+name: Cyber Sentinel CI & Security Validation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-security-test:
+    name: Backend Security & Stress Suites
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Capstone Verification Suite
+        run: npm test
+
+      - name: Run Worst-Case Adversarial Suite
+        run: npm run test:worst-case
+
+      - name: Run Phase 3 Adversarial Security Suite
+        run: |
+          node src/server.js &
+          sleep 4
+          npm run test:adversarial

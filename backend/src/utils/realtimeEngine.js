@@ -127,8 +127,8 @@ const { ROLES, normalizeRole } = require('../constants/roles');
             sessionBlockedCount++;
           }
         });
-        io.emit('attack:ip_blocked', { ip: data.ip, blockedCount: getBlockedIps().length });
-        io.emit('system:metrics', buildDashboardSnapshot(latestMetrics || collectSystemMetrics()));
+        io.to('authenticated').emit('attack:ip_blocked', { ip: data.ip, blockedCount: getBlockedIps().length });
+        io.to('authenticated').emit('system:metrics', buildDashboardSnapshot(latestMetrics || collectSystemMetrics()));
       }
     });
 
@@ -153,9 +153,9 @@ const { ROLES, normalizeRole } = require('../constants/roles');
             attackTimeline[attackTimeline.length - 1].attacks++;
             if (attack.blocked) attackTimeline[attackTimeline.length - 1].blocked++;
           }
-          io.emit('attack:event', attack);
+          io.to('authenticated').emit('attack:event', attack);
         });
-        io.emit('system:metrics', buildDashboardSnapshot(latestMetrics || collectSystemMetrics()));
+        io.to('authenticated').emit('system:metrics', buildDashboardSnapshot(latestMetrics || collectSystemMetrics()));
         console.log(`[RT] Manual scan: found ${events.length} suspicious connections`);
       } catch (err) {
         console.error('[RT] Manual scan error:', err.message);
@@ -190,7 +190,7 @@ const { ROLES, normalizeRole } = require('../constants/roles');
       latestMetrics = await collectSystemMetrics();
       setLastSystemMetrics(latestMetrics);
       const snapshot = buildDashboardSnapshot(latestMetrics);
-      io.emit('system:metrics', snapshot);
+      io.to('authenticated').emit('system:metrics', snapshot);
     } catch (err) {
       console.error('[RT] Metrics error:', err.message);
     }
@@ -223,7 +223,7 @@ const { ROLES, normalizeRole } = require('../constants/roles');
             if (attack.blocked) attackTimeline[attackTimeline.length - 1].blocked++;
           }
 
-          io.emit('attack:event', attack);
+          io.to('authenticated').emit('attack:event', attack);
           console.log(`[RT] REAL connection flagged: ${attack.sourceIp} → ${attack.type} [${attack.severity}]`);
         });
       } else {
@@ -244,7 +244,7 @@ const { ROLES, normalizeRole } = require('../constants/roles');
       const [ports, count] = await Promise.all([getListeningPorts(), getConnectionCount()]);
       listeningPortsCache = ports;
       connectionCountCache = count;
-      io.emit('system:ports', { listeningPorts: ports, connectionCount: count });
+      io.to('authenticated').emit('system:ports', { listeningPorts: ports, connectionCount: count });
     } catch {}
   }
   setTimeout(refreshPortsAndConnections, 4000);
@@ -257,13 +257,13 @@ const { ROLES, normalizeRole } = require('../constants/roles');
     const m = now.getMinutes().toString().padStart(2, '0');
     const newBucket = { hour: `${h}:${m}`, attacks: 0, blocked: 0 };
     attackTimeline = [...attackTimeline.slice(1), newBucket];
-    io.emit('timeline:update', { timeline: attackTimeline, newBucket });
+    io.to('authenticated').emit('timeline:update', { timeline: attackTimeline, newBucket });
   }, 30000);
 
   // ── INTERVAL 5: Linked devices every 10 seconds ──
   setInterval(() => {
     if (latestMetrics) {
-      io.emit('linked:devices', latestMetrics.linkedDevices);
+      io.to('authenticated').emit('linked:devices', latestMetrics.linkedDevices);
     }
   }, 10000);
 
@@ -274,7 +274,7 @@ const { ROLES, normalizeRole } = require('../constants/roles');
     if (threatScore >= 60) {
       const criticalFindings = findings.filter(f => f.severity === 'CRITICAL' || f.severity === 'HIGH');
       if (criticalFindings.length > 0) {
-        io.emit('alert:critical', {
+        io.to('authenticated').emit('alert:critical', {
           threatScore, riskLevel,
           finding: criticalFindings[0],
           timestamp: new Date().toISOString(),

@@ -6,3 +6,7 @@ dist/
 .DS_Store
 agent/.device_id
 *.tmp.*
+backend/src/data/security_state.json
+backend/src/data/users.json
+coverage/
+.nyc_output/

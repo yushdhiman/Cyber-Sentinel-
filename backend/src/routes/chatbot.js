@@ -18,7 +18,7 @@ function setIO(io) { _io = io; }
  *   "agent:step" → { type, content?, tool?, result?, toolsUsed?, iteration }
  */
 router.post('/message', async (req, res) => {
-  const { message, sessionId: clientSessionId } = req.body;
+  const { message, sessionId: clientSessionId } = req.body || {};
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message (string) is required' });

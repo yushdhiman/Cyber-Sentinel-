@@ -9,6 +9,8 @@
     "dev": "nodemon src/server.js",
     "test": "node test_capstone_pipeline.js",
     "test:worst-case": "node test_worst_case_scenarios.js",
+    "test:adversarial": "node test_adversarial_security.js",
+    "test:all": "node test_worst_case_scenarios.js && node test_adversarial_security.js",
     "build": "node -e \"console.log('Backend build complete')\""
   },
   "dependencies": {

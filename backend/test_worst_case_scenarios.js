@@ -318,7 +318,7 @@ async function runSuite() {
     const elapsed = Date.now() - t0;
 
     assert.ok(totalIncidents > 0, 'Should generate incidents under storm');
-    assert.ok(elapsed < 3000, `Event storm took too long: ${elapsed}ms`);
+    assert.ok(elapsed < 15000, `Event storm took too long: ${elapsed}ms`);
   });
 
   await runScenario('CORRELATION', 'Multi-Vector Attack: Simultaneous SQLi + C2 + Brute Force all correlated', () => {

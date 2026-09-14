@@ -196,7 +196,7 @@ router.post('/simulate', (req, res) => {
           } else if (payload.includes('whoami')) {
             executionResult = `nt authority\\system\n[Injected shell instruction execution complete]`;
           } else {
-            executionResult = `Directory of C:\\Users\\Ayush\\Downloads\\cyber-sentinel\\cyber-sentinel\\backend\n\n2026-07-11  21:50    <DIR>          .\n2026-07-11  21:50    <DIR>          ..\n2026-07-11  21:50               178 .env\n2026-07-11  21:50               109 .env.example\n2026-07-11  21:52    <DIR>          node_modules\n2026-07-11  21:50            51,127 package-lock.json\n2026-07-11  21:50               569 package.json\n2026-07-11  21:50    <DIR>          src\n\n[Injected shell instruction execution complete]`;
+            executionResult = `Directory of C:\\app\\backend\n\n2026-01-01  00:00    <DIR>          .\n2026-01-01  00:00    <DIR>          ..\n2026-01-01  00:00               178 .env.example\n2026-01-01  00:00    <DIR>          node_modules\n2026-01-01  00:00            51,127 package-lock.json\n2026-01-01  00:00               569 package.json\n2026-01-01  00:00    <DIR>          src\n\n[Injected shell instruction execution complete]`;
           }
         } else {
           executionResult = `PING ${payload} (127.0.0.1) 56(84) bytes of data.\n64 bytes from localhost (127.0.0.1): icmp_seq=1 ttl=64 time=0.040 ms\n\n--- ${payload} ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss`;
