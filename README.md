@@ -14,7 +14,7 @@
 ## 🚀 Live Deployments
 
 - 🌐 **Production Web Application (Vercel):** [https://cyber-sentinel-pwvj.vercel.app/](https://cyber-sentinel-pwvj.vercel.app/)
-- ⚡ **Production API & Real-Time Engine (Render):** [https://cyber-sentinel-7xfn.onrender.com/](https://cyber-sentinel-7xfn.onrender.com/)
+- ⚡ **Production API & Real-Time Engine (Render):** [https://cyber-sentinel-1cdn.onrender.com/](https://cyber-sentinel-1cdn.onrender.com/)
 
 ---
 
