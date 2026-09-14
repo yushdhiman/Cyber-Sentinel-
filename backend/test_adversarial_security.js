@@ -26,7 +26,8 @@ const { analyzeBinary } = require("./src/services/malware/staticAnalyzer");
 // Load real JWT secret from .env so forged tokens match what the server validates
 try { require('dotenv').config({ path: './.env' }); } catch(_) {}
 
-const BASE_URL = process.env.SERVER_URL || "http://localhost:10000";
+const port = process.env.PORT || 5000;
+const BASE_URL = process.env.SERVER_URL || `http://localhost:${port}`;
 const JWT_DEV_SECRET = process.env.JWT_SECRET || "cyber-sentinel-dev-only-secret-do-not-use-in-production";
 
 let passed = 0;
