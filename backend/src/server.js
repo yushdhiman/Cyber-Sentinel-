@@ -32,9 +32,9 @@ const allowedOrigins = process.env.CORS_ORIGIN
 const isAllowedOrigin = (origin) => {
   if (!origin) return true; // Allow non-browser agents, CLI tools, server-to-server
   if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return true;
-  // Wildcard subdomain matching ONLY outside production — never allow in a live SOC deployment
-  if (process.env.NODE_ENV !== 'production') {
-    if (origin.endsWith('.vercel.app') || origin.endsWith('.onrender.com')) return true;
+  // Always allow live deployment domains (Render and Vercel) as well as local development
+  if (origin.endsWith('.vercel.app') || origin.endsWith('.onrender.com') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    return true;
   }
   return false;
 };
