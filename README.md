@@ -138,23 +138,36 @@ $$y = 50\% + \left(\frac{r_{\text{scaled}}}{2}\right) \sin\left(\theta \cdot \fr
 
 | Endpoint | Method | Purpose | Auth |
 |---|---|---|---|
-| `/api/health` | `GET` | Health check, server uptime, WebSocket discovery URL | Public |
-| `/api/threats` | `GET` | Paginated ThreatFox IOCs and CISA KEV catalog | Non-blocking |
-| `/api/threats/stats` | `GET` | High-level threat count and severity distributions | Non-blocking |
-| `/api/logs/analyze` | `POST` | Ingests raw text logs and returns heuristic threat breakdown | Non-blocking |
-| `/api/protection/block` | `POST` | Appends IP address to the active local firewall blacklist | Non-blocking |
-| `/api/sandbox/analyze` | `POST` | Inspects uploaded payload for entropy and malicious imports | Non-blocking |
-| `/api/chatbot/message` | `POST` | Sends security query to AI Copilot engine | Non-blocking |
+| `/api/health` | `GET` | Health check, component readiness, WebSocket discovery URL | Public |
+| `/api/health/ready` | `GET` | PostgreSQL connection pool and migration readiness check | Public |
+| `/api/metrics` | `GET` | Prometheus-compatible gauge and counter telemetry feed | Public |
+| `/api/auth/register` | `POST` | Operator account registration with bcrypt password hashing | Public |
+| `/api/auth/login` | `POST` | JWT authentication + TOTP MFA challenge verification | Public |
+| `/api/threats` | `GET` | Paginated ThreatFox IOCs and CISA KEV catalog | `VIEWER+` |
+| `/api/threats/stats` | `GET` | High-level threat count and severity distributions | `VIEWER+` |
+| `/api/logs/analyze` | `POST` | Ingests raw text logs and returns heuristic threat breakdown | `ANALYST+` |
+| `/api/protection/block-ip` | `POST` | Appends IP address to active firewall containment list | `SENIOR_ANALYST+` |
+| `/api/protection/scan-email` | `POST` | Deep heuristic analysis for spoofed headers and phishing | `ANALYST+` |
+| `/api/protection/scan-link` | `POST` | Domain, TLD, IP-based, and shortener link analysis | `ANALYST+` |
+| `/api/malware/analyze` | `POST` | In-memory PE structural analysis, Shannon entropy, imports | `ANALYST+` |
+| `/api/sandbox/simulate` | `POST` | Safe emulation of attack chains (ransomware, C2, persistence) | `ANALYST+` |
+| `/api/incidents` | `GET` / `POST` | Incident lifecycle and SHA-256 cryptographic evidence trail | `ANALYST+` |
+| `/api/incidents/:id/status` | `PATCH` | Update incident status (`TRIAGED`, `CONTAINED`, `CLOSED`) | `SENIOR_ANALYST+` |
+| `/api/audit-logs` | `GET` | Immutable security audit log repository | `ADMIN` only |
+| `/api/chatbot/message` | `POST` | Query Agentic AI Copilot (18 tools with human approval gate) | `ANALYST+` |
 
 ### Real-Time WebSocket Events
 
-| Event Name | Direction | Interval | Payload Description |
-|---|---|---|---|
-| `system:metrics` | Server $\to$ Client | $2\text{s}$ | CPU usage, RAM utilization, threat index, uptime |
-| `attack:event` | Server $\to$ Client | $3\text{–}7\text{s}$ | Active network packet, IP, threat vector, severity, status |
-| `attack:history` | Server $\to$ Client | On Connect | Initial batch of historical attack logs |
-| `timeline:update`| Server $\to$ Client | $30\text{s}$ | 24-hour attack volume histogram |
-| `custom:ping` | Bi-directional | $3\text{s}$ | Measures round-trip network latency in milliseconds |
+| Event Name | Direction | Interval | Payload Description | Auth Room |
+|---|---|---|---|---|
+| `system:metrics` | Server $\to$ Client | $2\text{s}$ | CPU, RAM, threat index, uptime, live counters | `authenticated` |
+| `attack:event` | Server $\to$ Client | $3\text{–}7\text{s}$ | Network packet, IP, threat vector, severity, status | `authenticated` |
+| `attack:history` | Server $\to$ Client | On Connect | Initial batch of historical attack events | `authenticated` |
+| `timeline:update`| Server $\to$ Client | $30\text{s}$ | 24-hour attack volume histogram | `authenticated` |
+| `alert:critical` | Server $\to$ Client | On Alert | High-severity security threat broadcast | `role:ANALYST+` |
+| `incident:new` | Server $\to$ Client | On Incident | Automated incident creation from SIEM correlation | `role:ANALYST+` |
+| `agent:step` | Server $\to$ Client | Real-time | Streaming agent reasoning, tool calls, and observations | Session room |
+| `custom:ping` | Bi-directional | $3\text{s}$ | Measures round-trip network latency in milliseconds | `authenticated` |
 
 ---
 
